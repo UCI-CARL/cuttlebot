@@ -51,9 +51,7 @@ picam.configure(config)
 picam.start()
 
 #get one image frame (as an np.array) from the main, low res, and raw streams
-#we only need the main frame now
 #(main_frame, lores_frame, raw_frame), metadata = picam.capture_arrays(["main", "lores", "raw"])
-main_frame = picam.capture_array()
 
 #print the 3 different frames
 #plt.imshow(cv2.cvtColor(main_frame, cv2.COLOR_BGR2RGB))
@@ -76,7 +74,9 @@ main_frame = picam.capture_array()
 #loop for 500 frames to get gamera images
 for i in range(500):
     #get one image frame (as an np.array) from the main, low res, and raw streams
-    (main_frame, lores_frame, raw_frame), metadata = picam.capture_arrays(["main", "lores", "raw"])
+    #(main_frame, lores_frame, raw_frame), metadata = picam.capture_arrays(["main", "lores", "raw"])
+    #we only need the main frame now
+    main_frame = picam.capture_array()
     
     #blur the image to help neglect any small colored objects (may need to blur this more)
     blurred_bgr_image = cv2.GaussianBlur(main_frame, (7,7), 0)
