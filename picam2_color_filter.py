@@ -11,8 +11,9 @@ import matplotlib.pyplot as plt
 picam = picamera2.Picamera2()
 
 #set configuration to enable the low resolution (lores) and raw streams (main stream enabled by default)
-picam.preview_configuration.enable_lores()
-picam.preview_configuration.enable_raw()
+#comment out the increase framerate
+#picam.preview_configuration.enable_lores()
+#picam.preview_configuration.enable_raw()
 
 #set configuration for output streams
 config = picam.create_preview_configuration(
@@ -29,7 +30,8 @@ config = picam.create_preview_configuration(
     },
     
     #raw stream
-    raw = picam.sensor_modes[2],
+    #comment out as this applies only to the fisheye lens camera
+    #raw = picam.sensor_modes[2],
     
     #video controls
     controls = {
@@ -49,7 +51,9 @@ picam.configure(config)
 picam.start()
 
 #get one image frame (as an np.array) from the main, low res, and raw streams
-(main_frame, lores_frame, raw_frame), metadata = picam.capture_arrays(["main", "lores", "raw"])
+#we only need the main frame now
+#(main_frame, lores_frame, raw_frame), metadata = picam.capture_arrays(["main", "lores", "raw"])
+main_frame = picam.capture_array()
 
 #print the 3 different frames
 #plt.imshow(cv2.cvtColor(main_frame, cv2.COLOR_BGR2RGB))
@@ -65,8 +69,9 @@ picam.start()
 #plt.show()
 
 #start pyplot for continuous updating
-plt.ion()
-plt.show()
+#DONT USE PYPLOT: Its slow! Use cv2.imshow
+#plt.ion()
+#plt.show()
 
 #loop for 500 frames to get gamera images
 for i in range(500):
@@ -106,10 +111,12 @@ for i in range(500):
 
     #apply the mask to the image. Can think of the mask as a window to view the object
     masked_image = cv2.bitwise_and(main_frame, main_frame, mask=mask)
-    plt.clf()
-    plt.imshow(cv2.cvtColor(masked_image, cv2.COLOR_BGR2RGB))
+    #Pyplot slow! Using cv2 instead
+    #plt.clf()
+    #plt.imshow(cv2.cvtColor(masked_image, cv2.COLOR_BGR2RGB))
     #print("masked image")
-    plt.draw()
-    plt.pause(0.001)
+    #plt.draw()
+    #plt.pause(0.001)
+    cv2.imshow("Red Filter Image Result", masked_image)
     
 picam.stop()
