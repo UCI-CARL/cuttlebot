@@ -118,5 +118,8 @@ for i in range(500):
     #plt.draw()
     #plt.pause(0.001)
     cv2.imshow("Red Filter Image Result", masked_image)
-    
+    if(cv2.getKey(1) == 27):
+        break
+
+cv2.destroyAllWindows()
 picam.stop()
