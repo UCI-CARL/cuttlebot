@@ -93,9 +93,9 @@ for i in range(500):
 
     #set the red filter 0 +/- 20: Need to set 2 bounds since -20 degrees = 160 degrees for HSV values
     hls_lower_limit_lowAngleRED = np.uint8([0,128, 128])
-    hls_upper_limit_lowAngleRED = np.uint8([20, 255, 255])
+    hls_upper_limit_lowAngleRED = np.uint8([15, 255, 255])
 
-    hls_lower_limit_highAngleRED = np.uint8([160, 100, 100])
+    hls_lower_limit_highAngleRED = np.uint8([165, 128, 128])
     hls_upper_limit_highAngleRED = np.uint8([180, 255, 255])
 
     #Get the mask (boolean matrix) for pixels that are in the specified range
