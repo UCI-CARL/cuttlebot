@@ -9,22 +9,22 @@ class PID_2D():
         self.k_i = k_i
         self.k_d = k_d
         #variables for the input reference and the current output (y)
-        self.ref = np.array((0,0))
-        self.y = np.array((0,0))
+        self.ref = np.array((0.0,0.0))
+        self.y = np.array((0.0,0.0))
         #variables related to the error (prev for derivatives and total for integrals)
-        self.error = np.array((0,0))
-        self.error_prev = np.array((0,0))
-        self.error_total = np.array((0,0))
+        self.error = np.array((0.0,0.0))
+        self.error_prev = np.array((0.0,0.0))
+        self.error_total = np.array((0.0,0.0))
         #variable for servo PWM values
         self.PWM_duty_cycles = np.array((7.5,7.5))
 
     def reset(self):
         #reset output
-        self.y = np.array((0,0))
+        self.y = np.array((0.0,0.0))
         #reset errors
-        self.error = np.array((0,0))
-        self.error_prev = np.array((0,0))
-        self.error_total = np.array((0,0))
+        self.error = np.array((0.0,0.0))
+        self.error_prev = np.array((0.0,0.0))
+        self.error_total = np.array((0.0,0.0))
         #reset variable for servo PWM values
         self.PWM_duty_cycles = np.array((7.5,7.5))
 

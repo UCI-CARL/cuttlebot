@@ -21,7 +21,7 @@ class Perception():
             if(np.sum(mask) < 10):
                 continue
             #Get the average point of the mask (relative to the center of the camera)
-            mask_center = (mask.shape-1)/2
+            mask_center = (np.array(mask.shape)-1)/2
             avg_point = self.__get_avg_mask_point(mask, relative_pixel=mask_center)
             #Now update the pan tilt unit according to the output of the control system (avg_point); with reference point at (0,0)
             self.pan_tilt_unit.update(avg_point)
