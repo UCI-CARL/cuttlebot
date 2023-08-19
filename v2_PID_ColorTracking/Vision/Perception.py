@@ -1,10 +1,10 @@
 #import needed libraries
 import numpy as np
-from Sight.Camera import Camera
-from Movement.PanTiltUnit import PanTiltUnit
+from Vision.Sight.Camera import Camera
+from Vision.Movement.PanTiltUnit import PanTiltUnit
 
-#Vision class for vision movement, vision sensation, and vision perception
-class Vision():
+#Perception class for using sensation and movement to perform perceptual abilities
+class Perception():
     #Vision class constructor
     def __init__(self):
         #Intantiate the camera and pan tilt unit objects

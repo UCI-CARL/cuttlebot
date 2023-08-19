@@ -1,7 +1,7 @@
 #import needed libraries
-from PID import PID_2D
 import time
 from rpi_hardware_pwm import HardwarePWM
+from Vision.Movement.Controllers.PID import PID_2D
 
 #Class for moving the pan-tile-unit
 class PanTiltUnit():
@@ -17,7 +17,7 @@ class PanTiltUnit():
         time.sleep(1)
 
         #Instantiate the PID controller object
-        self.pid_controller = PID_2D(k_p=0.0005, k_i=0.005, k_d=0.000001)
+        self.pid_controller = PID.PID_2D(k_p=0.0005, k_i=0.005, k_d=0.000001)
         #For tracking problems, set the reference to (0,0)
         self.pid_controller.set_reference((0.0, 0.0))
 

@@ -1,9 +1,8 @@
 #import needed libraries
 import picamera2
 import libcamera
-import numpy as np
 import time
-from ColorFilter import ColorFilter
+from Vision.Sight.Filters.ColorFilter import ColorFilter
 
 class Camera():
     def __init__(self):

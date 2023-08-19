@@ -1,10 +1,10 @@
 #Import needed libraries
-from Vision import Vision
+import Vision.Perception
 
 #Main function
 def main():
     #instantiate vision object
-    vision = Vision.Vision()
+    vision = Vision.Perception()
     #use vision object to track color
     vision.track_color(0, precision=15)
 

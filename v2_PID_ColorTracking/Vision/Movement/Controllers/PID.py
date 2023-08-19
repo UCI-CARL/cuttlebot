@@ -1,5 +1,7 @@
+#import needed libraries
 import numpy as np
 
+#PID controller class for 2D vector objects
 class PID_2D():
     def __init__(self, k_p, k_i, k_d):
         #gain paramters for the P, I, and D paths respectively
