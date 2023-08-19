@@ -29,7 +29,12 @@ class ColorFilter():
             self.lower_bound_filter_range = (np.uint8([hue-precision, 170, 136]), np.uint8([hue, 255, 255]))
             self.upper_bound_filter_range = (np.uint8([hue, 170, 136]), np.uint8([hue+precision, 255, 255]))
 
-    def get_image_filter_mask(self, image):
+    #Obtain a filter mask based on the specified color filter
+    def get_color_filter_mask(self, image):
+        #Blur the image to get rid of noise (small background objects)
+        image = cv2.blur(image, (16,16))
+        #Convert the image to an HSV format to more easily analyze the colors
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
         #Get the mask for the lower bound filter range
         mask = cv2.inRange(image, *self.lower_bound_filter_range)
         #Then update the mask to account for the upper bound filter range
@@ -41,6 +46,6 @@ class ColorFilter():
         #First, get the color filter mask
         mask = self.get_image_filter_mask(image)
         #Then apply the mask to the image
-        filtered_image = cv2.bitwise_and(image, image, mask=mask)
+        image = cv2.bitwise_and(image, image, mask=mask)
         #Last, return the filtered image
-        return(filtered_image)
+        return(image)

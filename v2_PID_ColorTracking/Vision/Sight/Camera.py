@@ -44,7 +44,7 @@ class Camera():
     def get_color_mask(self):
         #Get the image from the camera
         image = self.get_image()
-        mask = self.color_filter.get_image_filter_mask(image)
+        mask = self.color_filter.get_color_filter_mask(image)
         #Return the resulting mask
         return(mask)
     
