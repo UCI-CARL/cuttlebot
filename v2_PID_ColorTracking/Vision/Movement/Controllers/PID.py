@@ -51,7 +51,8 @@ class PID_2D():
         i = self.k_i*(self.error - self.error_prev)
         d = self.k_d*(self.error_total)
         #get the sum of the PID values (this will be the PWM)
-        self.PWM_duty_cycles += p + i + d
+        #-1 multiplied since lower PWM related to rightward/upward movements on Pan-Tilt-Unit
+        self.PWM_duty_cycles += -1*(p + i + d)
         #check to ensure the duty cycles are within the valid range (2.5, 12.5)
         servos = [servo1, servo2]
         for i in range(len(self.PWM_duty_cycles)):
