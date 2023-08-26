@@ -26,7 +26,7 @@ class Direct_2D():
         self.ref = ref
 
     def update_output(self, y):
-        self.y = np.arctan(self.proportionality_constant*y)
+        self.y = y
 
     #update the PWM of the 2 given servos
     def update_servo_PWMs(self, servo1, servo2):
@@ -38,7 +38,7 @@ class Direct_2D():
             if(np.abs(relative_theta[i]) < self.center_degrees):
                 relative_theta[i] = 0.0
         #compute an update the new PWM duty cycle
-        relative_PWM = 7.5 + 0.05556*relative_theta
+        relative_PWM = 0.05556*relative_theta
         self.PWM_duty_cycles += relative_PWM
         #check to ensure the duty cycles are within the valid range (2.5, 12.5)
         servos = [servo1, servo2]
