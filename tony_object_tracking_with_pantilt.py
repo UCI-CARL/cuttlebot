@@ -7,7 +7,7 @@ import cv2
 import imutils
 # from imutils.video import VideoStream
 import RPi.GPIO as GPIO
-import helpers
+import tony_helpers
 import time
 
 # Color filtering
@@ -33,22 +33,22 @@ def servo_tracking(x, y):
         pan_angle -= 10
         if pan_angle < 0:
             pan_angle = 0
-        helpers.set_servo_angle(PAN_SERVO_PIN, pan_angle)
+        tony_helpers.set_servo_angle(PAN_SERVO_PIN, pan_angle)
     if (x > CAMERA_CENTER_RANGE_X[1]):
         pan_angle += 10
         if pan_angle > 180:
             pan_angle = 180
-        helpers.set_servo_angle(PAN_SERVO_PIN, pan_angle)
+        tony_helpers.set_servo_angle(PAN_SERVO_PIN, pan_angle)
     if (y < CAMERA_CENTER_RANGE_Y[0]):
         tilt_angle -= 10
         if tilt_angle < 0:
             tilt_angle = 0
-        helpers.set_servo_angle(TILT_SERVO_PIN, tilt_angle)
+        tony_helpers.set_servo_angle(TILT_SERVO_PIN, tilt_angle)
     if (y > CAMERA_CENTER_RANGE_Y[1]):
         tilt_angle += 10
         if tilt_angle > 180:
             tilt_angle = 180
-        helpers.set_servo_angle(TILT_SERVO_PIN, tilt_angle)
+        tony_helpers.set_servo_angle(TILT_SERVO_PIN, tilt_angle)
 
 pan_angle = 90
 tilt_angle = 45
@@ -60,10 +60,10 @@ GPIO.setup(PAN_SERVO_PIN, GPIO.OUT)
 GPIO.setup(TILT_SERVO_PIN, GPIO.OUT)
 
 # Start up rpi camera
-camera = helpers.start_camera()
+camera = tony_helpers.start_camera()
 # Move Pan-tilt unit to the initial positions
-helpers.set_servo_angle(PAN_SERVO_PIN, 90)
-helpers.set_servo_angle(TILT_SERVO_PIN, 45)
+tony_helpers.set_servo_angle(PAN_SERVO_PIN, 90)
+tony_helpers.set_servo_angle(TILT_SERVO_PIN, 45)
 
 # keep looping
 while True:
@@ -84,7 +84,7 @@ while True:
 	# construct a mask for the color "green", then perform
 	# a series of dilations and erosions to remove any small
 	# blobs left in the mask
-	mask = helpers.create_mask(frame_hsv, BLUE_HSV_LOWER_LIMT, BLUE_HSV_UPPER_LIMIT)
+	mask = tony_helpers.create_mask(frame_hsv, BLUE_HSV_LOWER_LIMT, BLUE_HSV_UPPER_LIMIT)
 
 	# find contours in the mask and initialize the current
 	# (x, y) center of the ball
@@ -130,8 +130,8 @@ while True:
 
 # Cleanup
 print("\n [INFO] Exiting Program and cleanup stuff \n")
-helpers.set_servo_angle(PAN_SERVO_PIN, 90)
-helpers.set_servo_angle(TILT_SERVO_PIN, 45)
+tony_helpers.set_servo_angle(PAN_SERVO_PIN, 90)
+tony_helpers.set_servo_angle(TILT_SERVO_PIN, 45)
 GPIO.cleanup()
 # close all windows
 cv2.destroyAllWindows()
