@@ -2,6 +2,7 @@
 import time
 from rpi_hardware_pwm import HardwarePWM
 from Vision.Movement.Controllers.PID import PID_2D
+from Vision.Movement.Controllers.Proportional import Proportional_2D
 from Vision.Movement.Controllers.Direct import Direct_2D
 
 #Class for moving the pan-tile-unit
@@ -18,7 +19,9 @@ class PanTiltUnit():
         time.sleep(1)
 
         #Instantiate the controller object
-        self.controller = Direct_2D(cam_FOV=160, cam_dim=(320,240)) #PID_2D(k_p=0.0001, k_i=0.00001, k_d=0.00001)
+        #self.controller = PID_2D(k_p=0.005, k_i=0.00005, k_d=0.00005)
+        #self.controller = Proportional_2D(cam_FOV=160, cam_dim=(320,240), target_value_proportion=0.05, hysteresis_rad=0.5)
+        self.controller = Direct_2D(cam_FOV=160, cam_dim=(320,240), hysteresis_rad=0.5)
         #For tracking problems, set the reference to (0,0)
         self.controller.set_reference((0.0, 0.0))
 
