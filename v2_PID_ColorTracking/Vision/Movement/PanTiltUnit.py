@@ -25,5 +25,5 @@ class PanTiltUnit():
     #update the pan-tilt-unit with the new output point and move the servos to center the given point
     def update(self, output_point):
         #update the output of the PID controller
-        self.pid_controller.update_output(output_point)
-        self.pid_controller.update_servo_PWMs(self.pan_servo, self.tilt_servo)
+        self.controller.update_output(output_point)
+        self.controller.update_servo_PWMs(self.pan_servo, self.tilt_servo)
