@@ -38,7 +38,7 @@ class Direct_2D():
             if(np.abs(relative_theta[i]) < self.center_degrees):
                 relative_theta[i] = 0.0
         #compute an update the new PWM duty cycle
-        relative_PWM = 0.05556*relative_theta
+        relative_PWM = 3.18310*relative_theta
         self.PWM_duty_cycles += relative_PWM
         #check to ensure the duty cycles are within the valid range (2.5, 12.5)
         servos = [servo1, servo2]
