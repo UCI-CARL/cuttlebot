@@ -15,14 +15,7 @@ BLUE_HSV_LOWER_LIMT = np.uint8([100, 100, 100])
 BLUE_HSV_UPPER_LIMIT = np.uint8([140, 255, 255])
 
 # Start up rpi camera
-camera = Picamera2()
-# camera.resolution = (640, 480)
-# camera.framerate = 30
-camera.preview_configuration.main.size = (640, 480)
-camera.preview_configuration.main.format = "RGB888"
-camera.preview_configuration.align()
-camera.configure("preview")
-camera.start()
+camera = tony_helpers.start_camera()
 
 # construct the argument parse and parse the arguments
 ap = argparse.ArgumentParser()
