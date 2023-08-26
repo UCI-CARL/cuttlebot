@@ -12,7 +12,7 @@ class Proportional_2D():
         self.hysteresis_rad = hysteresis_rad
         self.target_value_proportion = target_value_proportion
         #define the proportionality constant for tan([theta_x, theta_y]) proportional to [x,y]
-        self.proportionality_constant = ((2.0*np.arctan(self.cam_FOV_width/2.0)) / (self.cam_width), (2.0*np.arctan(self.cam_FOV_height/2.0)) / (self.cam_width))
+        self.proportionality_constant = ((2.0*np.tan(self.cam_FOV_width/2.0)) / (self.cam_width), (2.0*np.tan(self.cam_FOV_height/2.0)) / (self.cam_height))
         #variables for the input reference and the current output (y)
         self.ref = np.array((0.0,0.0))
         self.y = np.array((0.0,0.0))
