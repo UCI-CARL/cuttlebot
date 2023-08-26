@@ -17,14 +17,14 @@ class Camera():
             },
             
             #video controls
-            controls = {
-                "FrameDurationLimits": (333333, 333333) #microseconds boundary
-            },
+            #controls = {
+            #    "FrameDurationLimits": (333333, 333333) #microseconds boundary
+            #},
 
             #other parameters
             transform = libcamera.Transform(hflip=True, vflip=False), #params set so that the positive and negative axis are in right direction
-            queue = True,
-            display = "main" #None, "main", or "lores"
+            #queue = True,
+            #display = "main" #None, "main", or "lores"
         )
         #apply the configuration to the camera object
         self.picam2.configure(config)
