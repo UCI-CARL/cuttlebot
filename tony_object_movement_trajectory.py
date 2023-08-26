@@ -6,7 +6,7 @@ from collections import deque
 import numpy as np
 import argparse
 import cv2
-# import imutils
+import imutils
 import time
 from picamera2 import Picamera2
 import tony_helpers
@@ -15,14 +15,7 @@ BLUE_HSV_LOWER_LIMT = np.uint8([100, 100, 100])
 BLUE_HSV_UPPER_LIMIT = np.uint8([140, 255, 255])
 
 # Start up rpi camera
-camera = Picamera2()
-# camera.resolution = (640, 480)
-# camera.framerate = 30
-camera.preview_configuration.main.size = (640, 480)
-camera.preview_configuration.main.format = "RGB888"
-camera.preview_configuration.align()
-camera.configure("preview")
-camera.start()
+camera = tony_helpers.start_camera()
 
 # construct the argument parse and parse the arguments
 ap = argparse.ArgumentParser()
@@ -73,7 +66,7 @@ while True:
     # find contours in the mask and initialize the current
 	# (x, y) center of the ball
     contours = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    contours = tony_helpers.grab_contours(contours)
+    contours = imutils.grab_contours(contours)
     centroid = None
 
     # only proceed if at least one contour was found
