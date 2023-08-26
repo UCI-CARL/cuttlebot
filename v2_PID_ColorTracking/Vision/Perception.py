@@ -26,8 +26,8 @@ class Perception():
                     break
                 continue
             #Get the average point of the mask (relative to the center of the camera)
-            mask_center = (np.array(mask.shape)-1)/2
-            avg_point = self.__get_avg_mask_point(mask, relative_pixel=mask_center)
+            mask_center = np.flip((np.array(mask.shape)-1)/2)
+            avg_point = self.__get_avg_mask_point(mask, relative_point=mask_center)
             #Now update the pan tilt unit according to the output of the control system (avg_point); with reference point at (0,0)
             self.pan_tilt_unit.update(avg_point)
             #Option to present the image of the camera
@@ -40,7 +40,7 @@ class Perception():
         cv2.destroyAllWindows()
 
     #Helper function to get the average pixel of a given mask
-    def __get_avg_mask_point(self, mask, relative_pixel=(0,0)):
+    def __get_avg_mask_point(self, mask, relative_point=(0,0)):
         #Get the dimensions of the mask
         (num_rows, num_cols) = mask.shape
         #Get the weights for the rows and columns
@@ -52,8 +52,8 @@ class Perception():
         #Compute the average row and column based on the weights and multipliers
         avg_row = np.sum(row_weights*row_multipliers)/np.sum(row_multipliers)
         avg_column = np.sum(column_weights*column_multipliers)/np.sum(column_multipliers)
-        #Get the average point for the mask
-        avg_point = (avg_row, avg_column)
+        #Get the average point (x,y) for the mask
+        avg_point = (avg_column, avg_row)
         #Then compute the average point relative to some pixel
-        avg_point -= relative_pixel
+        avg_point -= relative_point
         return(avg_point)
