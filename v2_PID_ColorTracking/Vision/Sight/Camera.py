@@ -17,9 +17,9 @@ class Camera():
             },
             
             #video controls
-            #controls = {
-            #    "FrameDurationLimits": (333333, 333333) #microseconds boundary
-            #},
+            controls = {
+                "FrameDurationLimits": (0, 1000000) #microseconds boundary
+            },
 
             #other parameters
             transform = libcamera.Transform(hflip=True, vflip=False), #params set so that the positive and negative axis are in right direction
