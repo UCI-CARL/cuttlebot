@@ -22,6 +22,8 @@ class Perception():
             mask = self.camera.get_color_mask()
             #Check to ensure a valid image was recieved (at least 10 or more pixels in the specified color range)
             if(np.sum(mask) < 10):
+                print("No Mask :(")
+                cv2.imshow("Camera Image", self.camera.get_image())
                 continue
             #Get the average point of the mask (relative to the center of the camera)
             mask_center = (np.array(mask.shape)-1)/2
