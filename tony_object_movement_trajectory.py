@@ -9,7 +9,7 @@ import cv2
 # import imutils
 import time
 from picamera2 import Picamera2
-import helpers
+import tony_helpers
 
 BLUE_HSV_LOWER_LIMT = np.uint8([100, 100, 100])
 BLUE_HSV_UPPER_LIMIT = np.uint8([140, 255, 255])
@@ -68,12 +68,12 @@ while True:
 	# construct a mask for the color "green", then perform
 	# a series of dilations and erosions to remove any small
 	# blobs left in the mask
-    mask = helpers.create_mask(frame_hsv, BLUE_HSV_LOWER_LIMT, BLUE_HSV_UPPER_LIMIT)
+    mask = tony_helpers.create_mask(frame_hsv, BLUE_HSV_LOWER_LIMT, BLUE_HSV_UPPER_LIMIT)
 
     # find contours in the mask and initialize the current
 	# (x, y) center of the ball
     contours = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    contours = helpers.grab_contours(contours)
+    contours = tony_helpers.grab_contours(contours)
     centroid = None
 
     # only proceed if at least one contour was found
