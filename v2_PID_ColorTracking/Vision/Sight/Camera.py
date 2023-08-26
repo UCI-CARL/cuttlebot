@@ -23,7 +23,7 @@ class Camera():
 
             #other parameters
             transform = libcamera.Transform(hflip=True, vflip=False), #params set so that the positive and negative axis are in right direction
-            #queue = True,
+            queue = True,
             display = None #None, "main", or "lores"
         )
         #apply the configuration to the camera object
