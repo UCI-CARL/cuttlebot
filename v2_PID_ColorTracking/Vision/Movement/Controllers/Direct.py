@@ -4,7 +4,7 @@ import time
 #Controller to directly move point to center via equation
 class Direct_2D():
     #class constructor
-    def __init__(self, cam_FOV, cam_dim, hysteresis_rad=0.5):
+    def __init__(self, cam_FOV, cam_dim, hysteresis_rad=0.05):
         #save passed parameters
         self.cam_FOV = cam_FOV
         self.cam_dim = np.array(cam_dim)
@@ -13,7 +13,7 @@ class Direct_2D():
         self.movement_start_time = time.time()
         self.time_required_for_movement = 0
         #define the proportionality constant for tan([theta_x, theta_y]) proportional to [x,y]
-        self.proportionality_constant = (2.0*np.tan(self.cam_FOV/2.0)) / (self.cam_dim)
+        self.proportionality_constant = ((2.0*np.arctan(self.cam_FOV/2.0)) / (self.cam_dim[1]), (2.0*np.arctan(self.cam_FOV*(self.cam_dim[0]/self.cam_dim[1])/2.0)) / (self.cam_dim[0]))
         #variables for the input reference and the current output (y)
         self.ref = np.array((0.0,0.0))
         self.y = np.array((0.0,0.0))
@@ -37,7 +37,7 @@ class Direct_2D():
     #update the PWM of the 2 given servos
     def update_servo_PWMs(self, servo1, servo2):
         #Check to see if the servos have had enough time from the last call to move to position (~0.25 second needed to move to max position)
-        if(time.time() - self.movement_start_time < self.time_required_for_movement):
+        if(np.all(time.time() - self.movement_start_time < self.time_required_for_movement)):
             #dont do anything if not enough time was given
             return
         #Apply the equation to move to the new PWM values

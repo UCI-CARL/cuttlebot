@@ -20,8 +20,8 @@ class PanTiltUnit():
 
         #Instantiate the controller object
         #self.controller = PID_2D(k_p=0.005, k_i=0.00005, k_d=0.00005)
-        #self.controller = Proportional_2D(cam_FOV=160, cam_dim=(320,240), target_value_proportion=0.05, hysteresis_rad=0.5)
-        self.controller = Direct_2D(cam_FOV=160, cam_dim=(320,240), hysteresis_rad=0.5)
+        #self.controller = Proportional_2D(cam_FOV=100, cam_dim=(320,240), target_value_proportion=0.1, hysteresis_rad=0.05)
+        self.controller = Direct_2D(cam_FOV=100, cam_dim=(320,240), hysteresis_rad=0.05)
         #For tracking problems, set the reference to (0,0)
         self.controller.set_reference((0.0, 0.0))
 

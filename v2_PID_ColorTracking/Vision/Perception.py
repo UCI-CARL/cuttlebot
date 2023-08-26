@@ -31,7 +31,7 @@ class Perception():
             #Now update the pan tilt unit according to the output of the control system (avg_point); with reference point at (0,0)
             self.pan_tilt_unit.update(avg_point)
             #Option to present the image of the camera
-            image = cv2.circle(self.camera.get_image(), avg_point+mask_center, radius=5, color=(0,0,255), thickness=3)
+            image = cv2.circle(self.camera.get_image(), tuple([int(i) for i in avg_point+mask_center]), radius=5, color=(0,0,255), thickness=3)
             cv2.imshow("Camera Image", image)
             #Press Esc to stop program
             if(cv2.waitKey(1)&0xFF == 27):
