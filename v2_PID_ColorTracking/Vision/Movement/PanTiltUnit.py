@@ -18,7 +18,7 @@ class PanTiltUnit():
         time.sleep(1)
 
         #Instantiate the controller object
-        self.controller = Direct_2D(cam_FOV=160, cam_dim=(320,240))
+        self.controller = PID_2D(k_p=0.0005, k_i=0.005, k_d=0.000001) #Direct_2D(cam_FOV=160, cam_dim=(320,240))
         #For tracking problems, set the reference to (0,0)
         self.controller.set_reference((0.0, 0.0))
 
