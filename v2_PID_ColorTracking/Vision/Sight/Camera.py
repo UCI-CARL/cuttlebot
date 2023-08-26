@@ -18,7 +18,7 @@ class Camera():
             
             #video controls
             controls = {
-                "FrameDurationLimits": (333333, 333333) #microseconds boundary
+                "FrameDurationLimits": (0, 1000000) #microseconds boundary
             },
 
             #other parameters
