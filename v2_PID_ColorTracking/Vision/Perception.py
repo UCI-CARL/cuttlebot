@@ -1,7 +1,6 @@
 #import needed libraries
 import numpy as np
 import cv2
-import time
 from Vision.Sight.Camera import Camera
 from Vision.Movement.PanTiltUnit import PanTiltUnit
 
@@ -16,14 +15,16 @@ class Perception():
     #Method to track a certain color in the camera's view
     def track_color(self, hue, precision=15):
         self.camera.set_color_filter(hue, precision)
-        start = time.time()
-        while((time.time() - start) < 10):
+        while(1):
             #Get the current view of the camera (feedback for the controller guiding the movement)
             mask = self.camera.get_color_mask()
             #Check to ensure a valid image was recieved (at least 10 or more pixels in the specified color range)
             if(np.sum(mask) < 10):
                 print("No Mask :(")
                 cv2.imshow("Camera Image", self.camera.get_image())
+                #Press Esc to stop program
+                if(cv2.waitKey(1)&0xFF == 27):
+                    break
                 continue
             #Get the average point of the mask (relative to the center of the camera)
             mask_center = (np.array(mask.shape)-1)/2
@@ -32,6 +33,9 @@ class Perception():
             self.pan_tilt_unit.update(avg_point)
             #Option to present the image of the camera
             cv2.imshow("Camera Image", self.camera.get_image())
+            #Press Esc to stop program
+            if(cv2.waitKey(1)&0xFF == 27):
+                break
         #destroy all open cv windows upon completion of the program
         cv2.destroyAllWindows()
 
