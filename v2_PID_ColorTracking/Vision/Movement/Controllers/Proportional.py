@@ -3,14 +3,16 @@ import numpy as np
 #Controller to directly move point to center via equation
 class Proportional_2D():
     #class constructor
-    def __init__(self, cam_FOV, cam_dim, hysteresis_rad=0.05, target_value_proportion=0.1):
+    def __init__(self, cam_FOV_width, cam_width, cam_height, hysteresis_rad=0.05, target_value_proportion=0.1):
         #save passed parameters
-        self.cam_FOV = cam_FOV
-        self.cam_dim = np.array(cam_dim)
+        self.cam_FOV_width = cam_FOV_width
+        self.cam_FOV_height = cam_FOV_width*(cam_height/cam_width)
+        self.cam_width = cam_width
+        self.cam_height = cam_height
         self.hysteresis_rad = hysteresis_rad
         self.target_value_proportion = target_value_proportion
         #define the proportionality constant for tan([theta_x, theta_y]) proportional to [x,y]
-        self.proportionality_constant = ((2.0*np.arctan(self.cam_FOV/2.0)) / (self.cam_dim[1]), (2.0*np.arctan(self.cam_FOV*(self.cam_dim[0]/self.cam_dim[1])/2.0)) / (self.cam_dim[0]))
+        self.proportionality_constant = ((2.0*np.arctan(self.cam_FOV_width/2.0)) / (self.cam_width), (2.0*np.arctan(self.cam_FOV_height/2.0)) / (self.cam_width))
         #variables for the input reference and the current output (y)
         self.ref = np.array((0.0,0.0))
         self.y = np.array((0.0,0.0))
