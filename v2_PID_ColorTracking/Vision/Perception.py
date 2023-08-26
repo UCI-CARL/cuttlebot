@@ -20,7 +20,6 @@ class Perception():
             mask = self.camera.get_color_mask()
             #Check to ensure a valid image was recieved (at least 10 or more pixels in the specified color range)
             if(np.sum(mask) < 10):
-                print("No Mask :(")
                 cv2.imshow("Camera Image", self.camera.get_image())
                 #Press Esc to stop program
                 if(cv2.waitKey(1)&0xFF == 27):
@@ -32,7 +31,8 @@ class Perception():
             #Now update the pan tilt unit according to the output of the control system (avg_point); with reference point at (0,0)
             self.pan_tilt_unit.update(avg_point)
             #Option to present the image of the camera
-            cv2.imshow("Camera Image", self.camera.get_image())
+            image = cv2.circle(self.camera.get_image(), avg_point+mask_center, radius=5, color=(0,0,255), thickness=3)
+            cv2.imshow("Camera Image", image)
             #Press Esc to stop program
             if(cv2.waitKey(1)&0xFF == 27):
                 break
