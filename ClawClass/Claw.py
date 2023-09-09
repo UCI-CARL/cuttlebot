@@ -4,7 +4,7 @@ class Claw():
     #Claw class constructor
     def __init__(self, servo_pin):
         self.percent_open = None
-        self.open_bound_deg = 90
+        self.open_bound_deg = -90
         self.close_bound_deg = 0
         self.servo = Servo(pin=servo_pin, reset_servo_position=False)
 
