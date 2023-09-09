@@ -7,3 +7,6 @@ start = time.time()
 while(time.time() - start < 10):
     if(limit_switch.is_pressed()):
         print("Goteem!!!")
+    else:
+        print("Womp Womp :(")
+    time.sleep(0.05)
