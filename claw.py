@@ -18,7 +18,7 @@ GPIO.setup(servo_pin, GPIO.OUT)
 GPIO.setup(led_pin, GPIO.OUT)
 
 #set PWM to 50Hz (servo expects 50Hz PWM to read from: 20 ms per pulse)
-servo = GPIO.PWM(pin, 50)
+servo = GPIO.PWM(servo_pin, 50)
 
 #Create a spidev object for the ADC
 spi = spidev.SpiDev()
