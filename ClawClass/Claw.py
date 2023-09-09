@@ -54,7 +54,7 @@ class Claw():
             if(self.is_object_captured()):
                 break
             #sleep for short amount of time and decrease percent openess
-            time.sleep(0.05)
+            time.sleep(0.1)
             open_percent -= 1
 
     def release_object(self):
@@ -68,5 +68,5 @@ class Claw():
             if(self.is_object_fully_released()):
                 break
             #sleep for short amount of time and increment percent openess
-            time.sleep(0.05)
+            time.sleep(0.1)
             open_percent += 1
