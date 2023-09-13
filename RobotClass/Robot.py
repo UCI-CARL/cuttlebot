@@ -33,7 +33,7 @@ class Robot():
                 robot_proportion_angle_deg = proportion*cur_pan_angle
                 pan_compensation_PWM = 7.5 + 0.55556*(-robot_proportion_angle_deg)
                 new_pan_PWM = self.vision.pan_tilt_unit.controller.PWM_duty_cycles[0]+pan_compensation_PWM
-                self.vision.pan_tilt_unit.set_servo_PWM_duty_cycles(new_pan_PWM, self.vision.pan_tilt_unit.controller.PWM_duty_cycles[1])
+                #self.vision.pan_tilt_unit.set_servo_PWM_duty_cycles(new_pan_PWM, self.vision.pan_tilt_unit.controller.PWM_duty_cycles[1])
                 self.rvr.reset_yaw()
                 self.rvr.drive_with_yaw_si(
                     linear_velocity = 0,
@@ -51,7 +51,7 @@ class Robot():
             robot_proportion_angle_deg = proportion*cur_pan_angle
             pan_compensation_PWM = 7.5 + 0.55556*(-robot_proportion_angle_deg)
             new_pan_PWM = self.vision.pan_tilt_unit.controller.PWM_duty_cycles[0]+pan_compensation_PWM
-            self.vision.pan_tilt_unit.set_servo_PWM_duty_cycles(new_pan_PWM, self.vision.pan_tilt_unit.controller.PWM_duty_cycles[1])
+            #self.vision.pan_tilt_unit.set_servo_PWM_duty_cycles(new_pan_PWM, self.vision.pan_tilt_unit.controller.PWM_duty_cycles[1])
             self.rvr.reset_yaw()
             self.rvr.drive_with_yaw_si(
                 linear_velocity = 0,
