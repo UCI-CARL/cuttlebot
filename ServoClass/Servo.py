@@ -4,13 +4,14 @@ from rpi_hardware_pwm import HardwarePWM
 
 class Servo():
     #Initiallize the class
-    def __init__(self, pin, use_hardware_PWM=False, reset_servo_position=True):
+    def __init__(self, pin, use_hardware_PWM=False, reset_servo_position=True, max_turn_angle=90):
         #Store class variables
         self.angle = None
         self.timestamp = None
         self.servo = None
         self.pin = pin
         self.use_hardware_pwm = use_hardware_PWM
+        self.max_turn_angle = max_turn_angle
 
         #Check for Hardware PWM
         if(use_hardware_PWM):
@@ -40,6 +41,11 @@ class Servo():
 
     #set the angle of the servo motor and obtain a timestamp for when it was set
     def set_angle_deg(self, angle):
+        #Check for errors in the angle bounds and cut them off to the specified max
+        if(angle > self.max_turn_angle):
+            angle = self.max_turn_angle
+        elif(angle < -self.max_turn_angle):
+            angle = -self.max_turn_angle
         #Check for change in angle to avoid extra computation 
         if(angle == self.angle):
             return
