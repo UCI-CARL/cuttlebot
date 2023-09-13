@@ -1,6 +1,6 @@
 import time
 from Manipulation.LimitSwitch import LimitSwitch
-from Servo import Servo
+from Manipulation.Servo import Servo
 
 class Claw():
     #Claw class constructor
