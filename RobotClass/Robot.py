@@ -16,8 +16,8 @@ class Robot():
         time.sleep(2)
         #Reset the YAW on the rvr
         self.rvr.reset_yaw()
-        #Now the claw
-        self.claw = Claw(servo_pin=-1, right_limit_switch_pin=-1, left_limit_switch_pin=-1)
+        #Now the claw (NOT USING THE CLAW FOR NOW)
+        ########self.claw = Claw(servo_pin=-1, right_limit_switch_pin=-1, left_limit_switch_pin=-1)
         #Last, the vision module
         self.vision = Perception()
 
