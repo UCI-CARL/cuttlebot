@@ -35,9 +35,11 @@ class Robot():
                 new_pan_PWM = self.vision.pan_tilt_unit.controller.PWM_duty_cycles[0]+pan_compensation_PWM
                 #self.vision.pan_tilt_unit.set_servo_PWM_duty_cycles(new_pan_PWM, self.vision.pan_tilt_unit.controller.PWM_duty_cycles[1])
                 self.rvr.reset_yaw()
-                self.rvr.drive_with_yaw_si(
-                    linear_velocity = 0.2,
-                    yaw_angle = robot_proportion_angle_deg
+                self.rvr.drive_to_position_si(
+                    linear_velocity = 0.5,
+                    yaw_angle = robot_proportion_angle_deg,
+                    x = 0,
+                    y = 0
                 )
                 #skip vision processing
                 continue
@@ -53,9 +55,11 @@ class Robot():
             new_pan_PWM = self.vision.pan_tilt_unit.controller.PWM_duty_cycles[0]+pan_compensation_PWM
             #self.vision.pan_tilt_unit.set_servo_PWM_duty_cycles(new_pan_PWM, self.vision.pan_tilt_unit.controller.PWM_duty_cycles[1])
             self.rvr.reset_yaw()
-            self.rvr.drive_with_yaw_si(
-                linear_velocity = 0.2,
-                yaw_angle = robot_proportion_angle_deg
+            self.rvr.drive_to_position_si(
+                linear_velocity = 0.5,
+                yaw_angle = robot_proportion_angle_deg,
+                x = 0,
+                y = 0
             )
 
     #class destructor
