@@ -29,11 +29,11 @@ class Robot():
             if(np.sum(mask/255) < 10):
                 #recenter eyes
                 cur_pan_angle = (self.vision.pan_tilt_unit.controller.PWM_duty_cycles[0]-7.5)/0.055556
-                proportion = 0.5
+                proportion = 0.3
                 robot_proportion_angle_deg = proportion*cur_pan_angle
-                pan_compensation_PWM = 7.5 + 0.55556*(-robot_proportion_angle_deg)
-                new_pan_PWM = self.vision.pan_tilt_unit.controller.PWM_duty_cycles[0]+pan_compensation_PWM
-                #self.vision.pan_tilt_unit.set_servo_PWM_duty_cycles(new_pan_PWM, self.vision.pan_tilt_unit.controller.PWM_duty_cycles[1])
+                pan_compensation_PWM = 7.5 + 0.055556*(-robot_proportion_angle_deg)
+                new_pan_PWM = self.vision.pan_tilt_unit.controller.PWM_duty_cycles[0] + pan_compensation_PWM
+                self.vision.pan_tilt_unit.set_servo_PWM_duty_cycles(new_pan_PWM, self.vision.pan_tilt_unit.controller.PWM_duty_cycles[1])
                 #self.rvr.reset_yaw()
                 #self.rvr.reset_locator_x_and_y()
                 #self.rvr.drive_to_position_si(
@@ -61,10 +61,10 @@ class Robot():
             self.vision.pan_tilt_unit.update(avg_point)
             #Now move the robot according to the current angle of the pan unit
             cur_pan_angle = (self.vision.pan_tilt_unit.controller.PWM_duty_cycles[0]-7.5)/0.055556
-            proportion = 0.5
+            proportion = 0.3
             robot_proportion_angle_deg = proportion*cur_pan_angle
-            pan_compensation_PWM = 7.5 + 0.55556*(-robot_proportion_angle_deg)
-            new_pan_PWM = self.vision.pan_tilt_unit.controller.PWM_duty_cycles[0]+pan_compensation_PWM
+            #pan_compensation_PWM = 7.5 + 0.055556*(-robot_proportion_angle_deg)
+            #new_pan_PWM = self.vision.pan_tilt_unit.controller.PWM_duty_cycles[0]+pan_compensation_PWM
             #self.vision.pan_tilt_unit.set_servo_PWM_duty_cycles(new_pan_PWM, self.vision.pan_tilt_unit.controller.PWM_duty_cycles[1])
             #self.rvr.reset_yaw()
             #self.rvr.reset_locator_x_and_y()
