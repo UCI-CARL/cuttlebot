@@ -42,7 +42,7 @@ class Robot():
                 #skip vision processing
                 continue
             mask_center = np.flip((np.array(mask.shape)-1)/2)
-            avg_point = self.vision.__get_avg_mask_point(mask, relative_point=mask_center)
+            avg_point = self.vision.get_avg_mask_point(mask, relative_point=mask_center)
             #Now update the pan tilt unit according to the output of the control system (avg_point); with reference point at (0,0)
             self.vision.pan_tilt_unit.update(avg_point)
             #Now move the robot according to the current angle of the pan unit
