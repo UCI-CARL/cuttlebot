@@ -29,7 +29,7 @@ class Robot():
             if(np.sum(mask/255) < 10):
                 #recenter eyes
                 cur_pan_angle = (self.vision.pan_tilt_unit.controller.PWM_duty_cycles[0]-7.5)/0.055556
-                proportion = 0.01
+                proportion = 0.3
                 robot_proportion_angle_deg = proportion*cur_pan_angle
                 pan_compensation_PWM = 0.055556*(-robot_proportion_angle_deg)
                 new_pan_PWM = self.vision.pan_tilt_unit.controller.PWM_duty_cycles[0] + pan_compensation_PWM
