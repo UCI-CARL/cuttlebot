@@ -1,8 +1,7 @@
 #The robot class (for now) will be composed of the RVR+, Vision module, and claw (...adding soon)
 import time
 import numpy as np
-import cv2
-from Locomotion import sphereo_sdk as sphero
+import Sphero_Locomotion as sphero
 from Manipulation.Claw import Claw
 from Vision.Perception import Perception
 
