@@ -29,7 +29,7 @@ class Robot():
             if(np.sum(mask/255) < 10):
                 #recenter eyes
                 cur_pan_angle = (self.vision.pan_tilt_unit.controller.PWM_duty_cycles[0]-7.5)/0.055556
-                proportion = 1
+                proportion = 0.5
                 robot_proportion_angle_deg = proportion*cur_pan_angle
                 pan_compensation_PWM = 7.5 + 0.55556*(-robot_proportion_angle_deg)
                 new_pan_PWM = self.vision.pan_tilt_unit.controller.PWM_duty_cycles[0]+pan_compensation_PWM
@@ -44,15 +44,15 @@ class Robot():
                 #    flags = 0
                 #)
                 #skip vision processing
-                if(np.abs(robot_proportion_angle_deg) < 5.0):
+                if(np.abs(robot_proportion_angle_deg) < 7.5):
                     self.rvr.drive_tank_si_units(
                         left_velocity = 0,
                         right_velocity = 0
                     )
                 else:
                     self.rvr.drive_tank_si_units(
-                        left_velocity = robot_proportion_angle_deg/45.0,
-                        right_velocity = -robot_proportion_angle_deg/45.0
+                        left_velocity = -robot_proportion_angle_deg/90.0,
+                        right_velocity = robot_proportion_angle_deg/90.0
                     )
                 continue
             mask_center = np.flip((np.array(mask.shape)-1)/2)
@@ -61,7 +61,7 @@ class Robot():
             self.vision.pan_tilt_unit.update(avg_point)
             #Now move the robot according to the current angle of the pan unit
             cur_pan_angle = (self.vision.pan_tilt_unit.controller.PWM_duty_cycles[0]-7.5)/0.055556
-            proportion = 1
+            proportion = 0.5
             robot_proportion_angle_deg = proportion*cur_pan_angle
             pan_compensation_PWM = 7.5 + 0.55556*(-robot_proportion_angle_deg)
             new_pan_PWM = self.vision.pan_tilt_unit.controller.PWM_duty_cycles[0]+pan_compensation_PWM
@@ -82,8 +82,8 @@ class Robot():
                 )
             else:
                 self.rvr.drive_tank_si_units(
-                    left_velocity = robot_proportion_angle_deg/45.0,
-                    right_velocity = -robot_proportion_angle_deg/45.0
+                    left_velocity = -robot_proportion_angle_deg/90.0,
+                    right_velocity = robot_proportion_angle_deg/90.0
                 )
 
     #class destructor
