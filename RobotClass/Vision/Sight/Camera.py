@@ -51,3 +51,8 @@ class Camera():
     #Change the color filter range
     def set_color_filter(self, hue, precision):
         self.color_filter.set_filter(hue, precision)
+
+    #destructor for camera class
+    def __del__(self):
+        #recommended to close pi-camera from post: https://stackoverflow.com/questions/76548060/access-picamera2-within-a-surrounding-class-on-raspberry-pi
+        self.picam2.close()
