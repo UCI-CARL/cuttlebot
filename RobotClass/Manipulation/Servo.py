@@ -21,6 +21,8 @@ class Servo():
                 channel = 0
             elif(pin == 33):
                 channel = 1
+            else:
+                raise Exception("Only Pins 32 or 33 can be used for hardware PWM")
             #Instantiate the servo for the specified pwm channel (0=GPIO12/Pin32, 1=GPIO13/Pin33) at 50Hz
             self.servo = HardwarePWM(pwm_channel=channel, hz=50)
         #Case for Software PWM
