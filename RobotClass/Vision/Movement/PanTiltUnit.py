@@ -40,3 +40,10 @@ class PanTiltUnit():
         self.tilt_servo.change_duty_cycle(tilt_PWM)
         self.servo_PWM_duty_cycles = np.array((pan_PWM,tilt_PWM))
         self.controller.PWM_duty_cycles = self.servo_PWM_duty_cycles
+
+    #Set the angles for the servos
+    def set_servo_angles(self, pan_angle, tilt_angle):
+        #convert angles to PWM duty cycles and set the PWM duty cycles
+        pan_PWM_duty_cycle = (0.055556*pan_angle)+7.5
+        tilt_PWM_duty_cycle = (0.055556*tilt_angle)+7.5
+        self.set_servo_PWM_duty_cycles(pan_PWM_duty_cycle, tilt_PWM_duty_cycle)
