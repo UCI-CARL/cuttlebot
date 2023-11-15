@@ -2,4 +2,4 @@ from Robot import Robot
 
 robot = Robot()
 
-robot.move_to_color()
+robot.work_that_claw()

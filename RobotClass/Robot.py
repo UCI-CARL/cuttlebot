@@ -16,10 +16,20 @@ class Robot():
         time.sleep(2)
         #Reset the YAW on the rvr
         self.rvr.reset_yaw()
-        #Now the claw (NOT USING THE CLAW FOR NOW)
-        ########self.claw = Claw(servo_pin=-1, right_limit_switch_pin=-1, left_limit_switch_pin=-1)
+        #Now the claw (pins 11 and 13 for the limit switches are not currently in use)
+        self.claw = Claw(servo_pin=7, right_limit_switch_pin=11, left_limit_switch_pin=13)
         #Last, the vision module
         self.vision = Perception()
+
+    def work_that_claw(self):
+        while(1):
+            #open claw
+            self.claw.set_percent_open(100)
+            time.sleep(2.5)
+            #close the claw
+            self.claw.set_percent_open(0)
+            time.sleep(2.5)
+
 
     def move_to_color(self):
         #Look for red object
