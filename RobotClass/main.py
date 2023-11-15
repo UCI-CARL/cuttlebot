@@ -2,4 +2,4 @@ from Robot import Robot
 
 robot = Robot()
 
-robot.work_that_claw()
+robot.get_object_depth_info()

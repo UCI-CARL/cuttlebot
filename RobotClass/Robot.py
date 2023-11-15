@@ -21,6 +21,130 @@ class Robot():
         #Last, the vision module
         self.vision = Perception()
 
+    def __align_via_body_movement(self):
+        #initiallize tank drive speed variabels
+        driving_left_velocity = 0
+        driving_right_velocity = 0
+        #control loop
+        while(1):
+            #get the color mask
+            mask = self.vision.camera.get_color_mask()
+            #If there are less than 20 active pixels
+            if(np.sum(mask/255) < 20):
+                #slow to a stop if nothing is found
+                print("looking...")
+                driving_left_velocity *= 0.95
+                driving_right_velocity *= 0.95
+                self.rvr.drive_tank_si_units(
+                    left_velocity = driving_left_velocity,
+                    right_velocity = driving_right_velocity
+                )
+                time.sleep(0.1)
+                continue
+            #The mask exists and we know we have found an objects (>=20 active pixels in mask)
+            #Get center index in (Row,Col) format
+            mask_center = np.flip((np.array(mask.shape)-1)/2)
+            #avg_point = self.vision.get_avg_mask_point(mask, relative_point=mask_center)
+            #Get the largest contour for the mask and find the centroid relative to the center of the mask
+            largest_contour = self.vision.get_largest_contour(mask)
+            largest_contour_bounding_box = self.vision.get_contour_bounding_box(largest_contour)
+            largest_contour_centroid = self.vision.get_contour_bounding_box_centroid(largest_contour_bounding_box)
+            rel_point = self.vision.get_relative_position(largest_contour_centroid, relative_point=mask_center)
+            #Now move the robot proportional to the relative point of the largest object (P controller)
+            max_camera_width = 320
+            max_speed = 0.25
+            if(np.abs(rel_point[0]) <= 1):
+                #if object is centered, the return from procedure
+                print("aligned!")
+                driving_left_velocity = 0
+                driving_right_velocity = 0
+                self.rvr.drive_tank_si_units(
+                    left_velocity = driving_left_velocity,
+                    right_velocity = driving_right_velocity
+                )
+                return
+            elif(rel_point[0] > 0):
+                #X-position of object to left of center -> turn right
+                turning_speed = np.abs(rel_point[0]/max_camera_width)*max_speed
+                driving_left_velocity = turning_speed
+                driving_right_velocity = -turning_speed
+            else:
+                #X-position of object to right of center -> turn left
+                turning_speed = np.abs(rel_point[0]/max_camera_width)*max_speed
+                driving_left_velocity = -turning_speed
+                driving_right_velocity = turning_speed
+            #after computing the new velocity of the wheels, set the values to the rvr
+            self.rvr.drive_tank_si_units(
+                    left_velocity = driving_left_velocity,
+                    right_velocity = driving_right_velocity
+                )
+
+    def get_object_depth_info(self):
+        #####Can also perform this task below for each contour in the image#####
+        #Look for red object
+        self.vision.camera.set_color_filter(0, precision=15)
+        #set cameras to 0, 0 angle
+        self.vision.pan_tilt_unit.set_servo_angles(0, 0)
+        #face largest object with color of interest
+        self.__align_via_body_movement()
+        #turn camera 90deg either left or right (turning left right now, but can be dependent on environmental constraints)
+        self.vision.pan_tilt_unit.set_servo_angles(90, 0)
+        #turn RVR in opposite direction 90 degrees
+        self.rvr.reset_yaw()
+        time.sleep(.1)
+        self.rvr.reset_locator_x_and_y()
+        time.sleep(.1)
+        self.rvr.drive_to_position_si(
+            yaw_angle=-90,
+            x=0,
+            y=0,
+            linear_speed=0.25,
+            flags=0
+        )
+        time.sleep(2.5)
+        #readjust rvr to center camera on largest object up
+        self.__align_via_body_movement()
+        #save centroid for reference
+        print("mid SNAP!")###############
+        #Move forward/back and compare the center-point of the object when the side first reaches the end of the frame OR when a limit of +/- 0.15m
+        self.rvr.reset_yaw()
+        time.sleep(.1)
+        self.rvr.reset_locator_x_and_y()
+        time.sleep(.1)
+        self.rvr.drive_to_position_si(
+            yaw_angle=0,
+            x=0,
+            y=0.15,
+            linear_speed=0.25,
+            flags=0
+        )
+        time.sleep(2)
+        #take picture after moving forward 0.15m
+        print("front SNAP!")################
+        #move back 0.3m
+        self.rvr.reset_yaw()
+        time.sleep(.1)
+        self.rvr.reset_locator_x_and_y()
+        time.sleep(.1)
+        self.rvr.drive_to_position_si(
+            yaw_angle=0,
+            x=0,
+            y=0.15,
+            linear_speed=0.25,
+            flags=0
+        )
+        time.sleep(2)
+        #take picture after being 0.15m back from reference position
+        print("back SNAP!") ##############
+        #use trig to estimate the depth information (2 results: mid w/ back & mid w/ front comparison)
+        depth_front_estimate = 
+        depth_back_estimate = 
+        #take the average depth of the 2 computations
+        depth = (depth_front_estimate + depth_back_estimate)/2
+        #return the robot to the center, directly facing the object
+        #print the estimated depth from the camera to the object
+        print("Last statment!")
+
     def work_that_claw(self):
         while(1):
             #open claw
