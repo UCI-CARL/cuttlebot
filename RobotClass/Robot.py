@@ -142,6 +142,7 @@ class Robot():
         #take the average depth of the 2 computations
         depth = (depth_front_estimate + depth_back_estimate)/2
         #return the robot to the center, directly facing the object
+        
         #print the estimated depth from the camera to the object
         print("Last statment!")
 
