@@ -8,11 +8,15 @@ class Camera():
     def __init__(self):
         #Instantiate the pi-camera object
         self.picam2 = picamera2.Picamera2()
+        #Specify the FOV of the camera
+        self.FOV = 40 #160/4
         #set configuration for output streams
+        self.width = 640
+        self.height = 480
         config = self.picam2.create_preview_configuration(
             #main stream
             main = {
-                "size": (320, 240), #width x height
+                "size": (self.width, self.height), #width x height
                 "format": "XRGB8888" #8-bit [B, G, R, 255]
             },
             
