@@ -21,6 +21,9 @@ class Robot():
         #Last, the vision module
         self.vision = Perception()
 
+    def do_nothing(self):
+        pass
+
     def __align_via_body_movement(self):
         #initiallize tank drive speed variabels
         driving_left_velocity = 0
@@ -141,6 +144,10 @@ class Robot():
             p_width_2 /= img_found
         else:
             p_width_2 = None
+        #Ensure that the width of the object was found in both cases
+        if(p_width_1==None or p_width_2==None):
+            return None
+        
 
 
     def get_object_depth_info_side_to_side(self):
