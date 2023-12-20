@@ -1,3 +1,4 @@
+import RPi
 import RPi.GPIO as GPIO
 
 class LimitSwitch():

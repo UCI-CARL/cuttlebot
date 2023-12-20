@@ -89,3 +89,13 @@ class Perception():
         x_center = np.round(contour_bounding_box[0] + contour_bounding_box[2]/2)
         y_center = np.round(contour_bounding_box[1] + contour_bounding_box[3]/2)
         return(np.array([x_center, y_center]))
+
+    #get the depth of an object from two different temporal potitions
+    def get_temporal_difference_object_depth(self, p_length1, p_length2, distance_moved_radially_inward):
+        #ref1_angle = p_length1/self.camera.get_max_dimension_pxl(axis_focus_dwh) * self.camera.get_FOV_rad(axis_focus_dwh)/2
+        #ref2_angle = p_length2/self.camera.get_max_dimension_pxl(axis_focus_dwh) * self.camera.get_FOV_rad(axis_focus_dwh)/2
+        #numerator = distance_moved_radially_inward_m * np.tan(ref1_angle)
+        #denominator = np.tan(ref2_angle) - np.tan(ref1_angle)
+        #depth_m = numerator / denominator
+        depth = distance_moved_radially_inward*(p_length1/(p_length2 - p_length1))
+        return(depth)

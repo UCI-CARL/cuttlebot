@@ -37,6 +37,13 @@ class SensorStreamingControl:
         return self.__streaming_services_by_name.keys()
 
     @property
+    def sensors(self):
+        """Returns a list of supported sensors for RVR
+
+        """
+        return self.__streaming_services_by_name
+
+    @property
     def enabled_sensors(self):
         """Returns a list of currently enabled sensors
 
