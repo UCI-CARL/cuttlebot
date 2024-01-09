@@ -22,7 +22,11 @@ class Robot():
         #Last, the vision module
         self.vision = Perception()
 
-    def do_nothing(self):
+    def do_nothing():
+        while(1):
+            pass
+    
+    def test_rvr_sensors(self):
         self.rvr.sensor_control.sensors["Locator"][0].enable_streaming_service("Locator")
         print(self.rvr.sensor_control.sensors["Locator"][0].enabled_streaming_services_by_id)
         rate_ms = 50 # min is 33 ms
@@ -35,6 +39,8 @@ class Robot():
         self.rvr.sensor_control.stop()
         self.rvr.sensor_control.sensors["Locator"][0].disable_all_streaming_services()
         print("Closed!")
+    
+    def camera_mode(self):
         for i in range(5):
             img = self.vision.camera.get_image()
             cv2.imshow('image',img)

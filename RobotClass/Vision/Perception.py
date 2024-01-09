@@ -9,7 +9,7 @@ class Perception():
     #Vision class constructor
     def __init__(self):
         #Intantiate the camera and pan tilt unit objects
-        self.camera = Camera()
+        self.camera = Camera(camera_ID=0)
         self.pan_tilt_unit = PanTiltUnit()
 
     #Method to track a certain color in the camera's view

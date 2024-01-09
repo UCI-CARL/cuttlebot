@@ -1,12 +1,29 @@
 #import needed libraries
+import os
+import json
 import picamera2
 import libcamera
 import numpy as np
 import time
+import cv2
 from Vision.Sight.Filters.ColorFilter import ColorFilter
 
 class Camera():
-    def __init__(self):
+    def __init__(self, camera_ID=None):
+        #Calibrate the camera
+        if(camera_ID == None):
+            print("Warning: Starting camera without calibration! Please give camera ID to calibrate!")
+        else:
+            print("\n=========================")
+            print("Gathering Camera Calibration Parameters")
+            print("=========================")
+            print("Calibrating Camera...")
+            file_directory_path = os.path.dirname(os.path.abspath(__file__))
+            calibration_folder_path = os.path.join(file_directory_path, "Camera_Calibration_Sets")
+            calibration_folder_path = os.path.join(calibration_folder_path, f"Cam{camera_ID}")
+            self._calibrate_camera(calibration_folder_path)
+            print("Camera Calibrated")
+
         #Instantiate the pi-camera object
         print("\n=========================")
         print("Initiallizing Camera")
@@ -81,6 +98,80 @@ class Camera():
         #Instantiate the color filter object
         self.color_filter = ColorFilter()
 
+    #calibrate the camera by obtaining a JSON file or a list of images to create a JSON
+    def _calibrate_camera(self, calibration_folder_path, checkerboard_inner_corners=(4,4)):
+        #First try to find the JSON file
+        try:
+            calibration_file_path = os.path.join(calibration_folder_path, "Camera_Parameters.JSON")
+            with open(calibration_file_path, 'r') as calibration_file:
+                print(f"Calibration data found in JSON file: {calibration_file_path}")
+                self.calibration_data = json.load(calibration_file)
+            print("Calibration Success!")
+        #If the JSON File doesn't exist, find and use png images in the calibration folder
+        except:
+            #referencing: https://docs.opencv.org/4.x/dc/dbb/tutorial_py_calibration.html
+            #recerencing: https://stackoverflow.com/questions/66225558/cv2-findchessboardcorners-fails-to-find-corners
+            print(f"No calibration JSON file found! Attempting to find calibrate camera via checkerboard images...")
+            # termination criteria
+            criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
+            # prepare object points, like (0,0,0), (1,0,0), (2,0,0) ....,(4,4,0)
+            object_point = np.zeros((checkerboard_inner_corners[0]*checkerboard_inner_corners[1],3), np.float32)
+            object_point[:,:2] = np.mgrid[0:checkerboard_inner_corners[0], 0:checkerboard_inner_corners[1]].T.reshape(-1, 2)
+            #setup initial variables used in loop
+            object_point_list = [] # 3d point in real world space
+            image_point_list = [] # 2d points in image plane.
+            image_index = 0
+            try:
+                while(1):
+                    #read the image and convert it to grayscale
+                    image_path = os.path.join(calibration_folder_path, f"calibration_img{image_index}")
+                    image = cv2.imread(image_path)
+                    gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+                    #hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+                    #lower_bound = np.array([0, 0, 145])
+                    #upper_bound = np.array([180, 60, 255])
+                    #mask = cv2.inRange(hsv_image, lower_bound, upper_bound)
+                    #find the corners of the chessboard
+                    ret, corners = cv2.findChessboardCorners(gray_image, checkerboard_inner_corners, flags=None)
+                    #see if the image was found
+                    if(ret):
+                        #If found, add object point and image point
+                        object_point_list.append(object_point)
+                        image_point = cv2.cornerSubPix(gray_image, corners, winSize=(11,11), zeroZone=(-1,-1), criteria=criteria)
+                        image_point_list.append(image_point)
+                    #if corners on calibration image were not found, then indicate to the user
+                    else:
+                        print(f"Calibration of image {image_index} failed!")
+                        raise Exception(f"Calibration error on image {image_index}")
+                        
+                    #increment image index by 1
+                    image_index += 1
+            except:
+                #if images were successfully parsed, solve for calibration constants
+                if(image_index > 0):
+                    print(f"{image_index} calibration images found in folder: {calibration_folder_path}")
+                    print("Computing calibration parameters...")
+                    ret, camera_matrix, distortion_coefficients, rotation_vectors, translation_vectors = cv2.calibrateCamera(object_point_list, image_point_list, gray_image.shape[:,:,-1], flags=None, criteria=None)
+                    #if calibration parameters successfully computed, save them to a JSON
+                    if(ret):
+                        print("Calibration parameters successfully found!")
+                        self.calibration_data = {
+                            "distortion_coefficients" : distortion_coefficients,
+                            "camera_matrix" : camera_matrix,
+                        }
+                        with open(calibration_file_path) as calibration_file:
+                            json.dumps(self.calibration_data, calibration_file, indent=2)
+                        print("Calibration Success!")
+                    #if calibration parameters failed to be found, indicate it to the user
+                    else:
+                        print(f"Calibration parameters could not be found!")
+                        print("Calibration Failed!")
+                        #raise Exception(f"Calibration computation error on image set!")
+                #if images were not successfully parsed, indicate it to the user
+                else:
+                    print("Error! No calibration file or images found! Aborting calibration process!")
+                    print("Calibration Failed!")
+
     #compute the new FOV of the diagonal, x, and y from a crop
     def __compute_new_FOV(self, full_dim_wh, crop_dim_wh, FOV_diagonal_full_deg):
         #dwh = diagonal, width, height
@@ -125,6 +216,7 @@ class Camera():
         FOV = self.get_FOV_deg(type_dwh)
         return(FOV*np.pi/180)
 
+    #get the maximum pixel dimension in a given direction: (D)iagonal, (W)idth, (H)eight
     def get_max_dimension_pxl(self, type_dwh):
         type_dwh = type_dwh.upper()
         if(type_dwh == 'D'):
@@ -136,7 +228,19 @@ class Camera():
         else:
             raise Exception("Invald dwh type!")
 
+    #Get the calibrated main frame image from the camera
+    def get_calibrated_image(self):
+        return(...)
+        pass
+        pass
+        pass
+        pass
+        pass
+        pass
 
+    #Get the uncalibrated main frame image from the camera
+    def get_raw_image(self):
+        return(self.picam2.capture_array())
 
     #destructor for camera class
     def __del__(self):
