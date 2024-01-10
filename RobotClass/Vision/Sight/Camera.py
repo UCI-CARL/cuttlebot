@@ -21,8 +21,11 @@ class Camera():
             file_directory_path = os.path.dirname(os.path.abspath(__file__))
             calibration_folder_path = os.path.join(file_directory_path, "Camera_Calibration_Sets")
             calibration_folder_path = os.path.join(calibration_folder_path, f"Cam{camera_ID}")
-            self._calibrate_camera(calibration_folder_path)
-            print("Camera Calibrated")
+            isCalibrated = self._calibrate_camera(calibration_folder_path)
+            if(isCalibrated):
+                print("Camera Calibrated!")
+            else:
+                print("Camera Calibration Failed!")
 
         #Instantiate the pi-camera object
         print("\n=========================")
@@ -106,12 +109,13 @@ class Camera():
             with open(calibration_file_path, 'r') as calibration_file:
                 print(f"Calibration data found in JSON file: {calibration_file_path}")
                 self.calibration_data = json.load(calibration_file)
-            print("Calibration Success!")
+            #Camera successfully calibrated, so return true
+            return(True)
         #If the JSON File doesn't exist, find and use png images in the calibration folder
         except:
             #referencing: https://docs.opencv.org/4.x/dc/dbb/tutorial_py_calibration.html
             #recerencing: https://stackoverflow.com/questions/66225558/cv2-findchessboardcorners-fails-to-find-corners
-            print(f"No calibration JSON file found! Attempting to find calibrate camera via checkerboard images...")
+            print(f"No calibration JSON file found! Attempting to calibrate camera via checkerboard images...")
             # termination criteria
             criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
             # prepare object points, like (0,0,0), (1,0,0), (2,0,0) ....,(4,4,0)
@@ -124,9 +128,11 @@ class Camera():
             try:
                 while(1):
                     #read the image and convert it to grayscale
-                    image_path = os.path.join(calibration_folder_path, f"calibration_img{image_index}")
+                    image_path = os.path.join(calibration_folder_path, f"calibration_img{image_index}.png")
+                    print(f"Reading image {image_index} from: {image_path}")
                     image = cv2.imread(image_path)
                     gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+                    print(f"Image {image_index} found!")
                     #hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
                     #lower_bound = np.array([0, 0, 145])
                     #upper_bound = np.array([180, 60, 255])
@@ -141,36 +147,42 @@ class Camera():
                         image_point_list.append(image_point)
                     #if corners on calibration image were not found, then indicate to the user
                     else:
-                        print(f"Calibration of image {image_index} failed!")
+                        print(f"Calibration of image {image_index} failed to be found!")
                         raise Exception(f"Calibration error on image {image_index}")
                         
                     #increment image index by 1
                     image_index += 1
-            except:
+            except Exception as e:
                 #if images were successfully parsed, solve for calibration constants
                 if(image_index > 0):
                     print(f"{image_index} calibration images found in folder: {calibration_folder_path}")
                     print("Computing calibration parameters...")
-                    ret, camera_matrix, distortion_coefficients, rotation_vectors, translation_vectors = cv2.calibrateCamera(object_point_list, image_point_list, gray_image.shape[:,:,-1], flags=None, criteria=None)
+                    ret, camera_matrix, distortion_coefficients, rotation_vectors, translation_vectors = cv2.calibrateCamera(object_point_list, image_point_list, imageSize=gray_image.shape[::-1], cameraMatrix=None, distCoeffs=None)
                     #if calibration parameters successfully computed, save them to a JSON
                     if(ret):
                         print("Calibration parameters successfully found!")
                         self.calibration_data = {
-                            "distortion_coefficients" : distortion_coefficients,
-                            "camera_matrix" : camera_matrix,
+                            "distortion_coefficients" : distortion_coefficients.tolist(),
+                            "camera_matrix" : camera_matrix.tolist(),
                         }
-                        with open(calibration_file_path) as calibration_file:
-                            json.dumps(self.calibration_data, calibration_file, indent=2)
-                        print("Calibration Success!")
+                        with open(calibration_file_path, 'w') as calibration_file:
+                            json_data = json.dumps(self.calibration_data, indent=2)
+                            calibration_file.write(json_data)
+                        #Camera successfully calibrated, so return true
+                        return(True)
                     #if calibration parameters failed to be found, indicate it to the user
                     else:
                         print(f"Calibration parameters could not be found!")
-                        print("Calibration Failed!")
+                        #Camera did not successfully calibrate, so return false
+                        return(False)
                         #raise Exception(f"Calibration computation error on image set!")
                 #if images were not successfully parsed, indicate it to the user
                 else:
                     print("Error! No calibration file or images found! Aborting calibration process!")
-                    print("Calibration Failed!")
+                    #Camera did not successfully calibrate, so return false
+                    return(False)
+        #catch all return statement (assume unsuccessful calibration)
+        return(False)
 
     #compute the new FOV of the diagonal, x, and y from a crop
     def __compute_new_FOV(self, full_dim_wh, crop_dim_wh, FOV_diagonal_full_deg):

@@ -22,14 +22,14 @@ class Robot():
         #Last, the vision module
         self.vision = Perception()
 
-    def do_nothing():
+    def do_nothing(self):
         while(1):
             pass
     
     def test_rvr_sensors(self):
         self.rvr.sensor_control.sensors["Locator"][0].enable_streaming_service("Locator")
         print(self.rvr.sensor_control.sensors["Locator"][0].enabled_streaming_services_by_id)
-        rate_ms = 50 # min is 33 ms
+        rate_ms = 50 # minimum sample period is 33 ms
         self.rvr.sensor_control.start(rate_ms) #SOMTHING WRONG WITH START METHOD!
         print(self.rvr.sensor_control.enabled_sensors)
         print("=========================")
