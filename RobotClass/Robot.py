@@ -3,6 +3,7 @@ import time
 import numpy as np
 import sphero_sdk as sphero
 import cv2
+import os
 from Manipulation.Claw import Claw
 from Vision.Perception import Perception
 
@@ -40,16 +41,36 @@ class Robot():
         self.rvr.sensor_control.sensors["Locator"][0].disable_all_streaming_services()
         print("Closed!")
     
-    def camera_mode(self):
-        for i in range(5):
-            img = self.vision.camera.get_image()
-            cv2.imshow('image',img)
-            cv2.imwrite(f"/home/cuttlebot/cuttlebot/RobotClass/Vision/Sight/CalibrationSet_Cam0/calibration_img{i+10}.png", img)
-
-            # waitKey() waits for a key press to close the window and 0 specifies indefinite loop
-            cv2.waitKey(0)
-            # cv2.destroyAllWindows() simply destroys all the windows we created.
-            cv2.destroyAllWindows()
+    def get_new_calibration_images(self, camera_ID):
+        #set up camera path to save images to
+        print(f"Getting new calibration images for camera {camera_ID}...")
+        file_directory_path = os.path.dirname(os.path.abspath(__file__))
+        camera_directory_path = os.path.join(file_directory_path, "Vision")
+        camera_directory_path = os.path.join(camera_directory_path, "Sight")
+        camera_directory_path = os.path.join(camera_directory_path, "Camera_Calibration_Sets")
+        camera_directory_path = os.path.join(camera_directory_path, f"Cam{camera_ID}")
+        #initiallize image index
+        img_index = 0
+        #constantly loop until hitting ESC
+        while(1):
+            #press SPACE to save image
+            print("Press SPACE to save image")
+            while(cv2.waitKey(50) != 32):
+                img = self.vision.camera.get_uncalibrated_image()
+                #present the image
+                cv2.imshow(f"Camera {camera_ID} Image", img)
+            camera_image_path = os.path.join(camera_directory_path, f"calibration_img{img_index}.png")
+            cv2.imwrite(camera_image_path, img)
+            #increment image index
+            img_index += 1
+            #press ESC to exit
+            print("Press ESC to exit and SPACE to continue")
+            if(cv2.waitKey(0) != 27):
+                break
+        #print the number of images saved
+        print(f"{img_index} images saved to: {camera_directory_path}")
+        #destroys all the windows we created before exiting the program
+        cv2.destroyAllWindows()
 
     def __align_via_body_movement(self):
         #initiallize tank drive speed variabels

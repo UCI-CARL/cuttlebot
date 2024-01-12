@@ -11,6 +11,7 @@ from Vision.Sight.Filters.ColorFilter import ColorFilter
 class Camera():
     def __init__(self, camera_ID=None):
         #Calibrate the camera
+        self.calibration_data = None
         if(camera_ID == None):
             print("Warning: Starting camera without calibration! Please give camera ID to calibrate!")
         else:
@@ -21,8 +22,8 @@ class Camera():
             file_directory_path = os.path.dirname(os.path.abspath(__file__))
             calibration_folder_path = os.path.join(file_directory_path, "Camera_Calibration_Sets")
             calibration_folder_path = os.path.join(calibration_folder_path, f"Cam{camera_ID}")
-            isCalibrated = self._calibrate_camera(calibration_folder_path)
-            if(isCalibrated):
+            self.isCalibrated = self._calibrate_camera(calibration_folder_path)
+            if(self.isCalibrated):
                 print("Camera Calibrated!")
             else:
                 print("Camera Calibration Failed!")
@@ -105,20 +106,23 @@ class Camera():
     def _calibrate_camera(self, calibration_folder_path, checkerboard_inner_corners=(4,4)):
         #First try to find the JSON file
         try:
+            #load the JSON file if found
             calibration_file_path = os.path.join(calibration_folder_path, "Camera_Parameters.JSON")
             with open(calibration_file_path, 'r') as calibration_file:
                 print(f"Calibration data found in JSON file: {calibration_file_path}")
                 self.calibration_data = json.load(calibration_file)
+                #convert list data to numpy arrays
+                for key in self.calibration_data.keys():
+                    self.calibration_data[key] = np.array(self.calibration_data[key])
             #Camera successfully calibrated, so return true
             return(True)
         #If the JSON File doesn't exist, find and use png images in the calibration folder
         except:
             #referencing: https://docs.opencv.org/4.x/dc/dbb/tutorial_py_calibration.html
-            #recerencing: https://stackoverflow.com/questions/66225558/cv2-findchessboardcorners-fails-to-find-corners
             print(f"No calibration JSON file found! Attempting to calibrate camera via checkerboard images...")
             # termination criteria
             criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
-            # prepare object points, like (0,0,0), (1,0,0), (2,0,0) ....,(4,4,0)
+            # prepare object points: (0,0,0), (1,0,0), (2,0,0) ....,(4,4,0)
             object_point = np.zeros((checkerboard_inner_corners[0]*checkerboard_inner_corners[1],3), np.float32)
             object_point[:,:2] = np.mgrid[0:checkerboard_inner_corners[0], 0:checkerboard_inner_corners[1]].T.reshape(-1, 2)
             #setup initial variables used in loop
@@ -133,6 +137,7 @@ class Camera():
                     image = cv2.imread(image_path)
                     gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
                     print(f"Image {image_index} found!")
+                    #potential fix for detecting checkerboard recerencing: https://stackoverflow.com/questions/66225558/cv2-findchessboardcorners-fails-to-find-corners
                     #hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
                     #lower_bound = np.array([0, 0, 145])
                     #upper_bound = np.array([180, 60, 255])
@@ -149,7 +154,6 @@ class Camera():
                     else:
                         print(f"Calibration of image {image_index} failed to be found!")
                         raise Exception(f"Calibration error on image {image_index}")
-                        
                     #increment image index by 1
                     image_index += 1
             except Exception as e:
@@ -161,13 +165,19 @@ class Camera():
                     #if calibration parameters successfully computed, save them to a JSON
                     if(ret):
                         print("Calibration parameters successfully found!")
-                        self.calibration_data = {
+                        #save parameters to a JSON file
+                        calibration_data_JSON = {
                             "distortion_coefficients" : distortion_coefficients.tolist(),
                             "camera_matrix" : camera_matrix.tolist(),
                         }
                         with open(calibration_file_path, 'w') as calibration_file:
-                            json_data = json.dumps(self.calibration_data, indent=2)
-                            calibration_file.write(json_data)
+                            json_string = json.dump(calibration_data_JSON, calibration_file, indent=2)
+                        #read and save the data from the JSON file int the camera object
+                        with open(calibration_file_path, 'r') as calibration_file:
+                            self.calibration_data = json.load(calibration_file)
+                            #convert list data to numpy arrays
+                            for key in self.calibration_data.keys():
+                                self.calibration_data[key] = np.array(self.calibration_data[key])
                         #Camera successfully calibrated, so return true
                         return(True)
                     #if calibration parameters failed to be found, indicate it to the user
@@ -241,17 +251,24 @@ class Camera():
             raise Exception("Invald dwh type!")
 
     #Get the calibrated main frame image from the camera
-    def get_calibrated_image(self):
-        return(...)
-        pass
-        pass
-        pass
-        pass
-        pass
-        pass
+    def get_calibrated_image(self, alpha=0.0):
+        #Check to see if the camera has been calibrated
+        if(not self.isCalibrated):
+            raise Exception("Error! Trying to get calibrated image before camera could be properly calibrated!")
+        #get the image from the camera alongside its dimensions
+        uncalibrated_image = self.picam2.capture_array()
+        h, w = uncalibrated_image.shape[0:2]
+        #compute the new optimal camera matrix to better undistort the image
+        new_camera_matrix, roi = cv2.getOptimalNewCameraMatrix(self.calibration_data["camera_matrix"], self.calibration_data["distortion_coefficients"], imageSize=(w,h), alpha=alpha, newImgSize=(w,h))
+        new_image = cv2.undistort(uncalibrated_image, self.calibration_data["camera_matrix"], self.calibration_data["distortion_coefficients"], dst=None, newCameraMatrix=new_camera_matrix)
+        # crop the image
+        print(roi)
+        #x, y, w, h = roi
+        #new_image = new_image[y:y+h, x:x+w]
+        return(new_image)
 
     #Get the uncalibrated main frame image from the camera
-    def get_raw_image(self):
+    def get_uncalibrated_image(self):
         return(self.picam2.capture_array())
 
     #destructor for camera class
