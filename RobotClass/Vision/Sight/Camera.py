@@ -6,10 +6,18 @@ import libcamera
 import numpy as np
 import time
 import cv2
+import glob
+
+import sys
+#sys.path.append("/home/cuttlebot/cuttlebot/RobotClass/Vision/Sight/Filters")
 from Vision.Sight.Filters.ColorFilter import ColorFilter
 
 class Camera():
     def __init__(self, camera_ID=None):
+        #Specify the full diagonal FOV of the camera
+        self.FOV_diagonal_full_deg = 160
+        print(f"Camera Full Diagonal FOV: {self.FOV_diagonal_full_deg} degrees")
+        
         #Calibrate the camera
         self.calibration_data = None
         if(camera_ID == None):
@@ -22,7 +30,8 @@ class Camera():
             file_directory_path = os.path.dirname(os.path.abspath(__file__))
             calibration_folder_path = os.path.join(file_directory_path, "Camera_Calibration_Sets")
             calibration_folder_path = os.path.join(calibration_folder_path, f"Cam{camera_ID}")
-            self.isCalibrated = self._calibrate_camera(calibration_folder_path)
+            isFisheye_Camera = self.FOV_diagonal_full_deg >= 160
+            self.isCalibrated = self._calibrate_camera(calibration_folder_path, checkerboard_box_length_mm=26.0, checkerboard_inner_corner_dimension=(5,9), isFisheye=isFisheye_Camera)
             if(self.isCalibrated):
                 print("Camera Calibrated!")
             else:
@@ -43,12 +52,6 @@ class Camera():
         print("\n=========================")
         print("Configuring Camera Sensing Mode")
         print("=========================")
-        #Specify the full diagonal FOV ???and focal length??? of the camera
-        self.FOV_diagonal_full_deg = 160
-        self.focal_length_mm = -1###3.15 #???Not sure what it is
-        ###############SHOULD MAYBE USE OPEN CV CAMERA CALIBRATION ON CHECKERBOARD!!!
-        print(f"Camera Full Diagonal FOV: {self.FOV_diagonal_full_deg} degrees")
-        print(f"Camera Focal Length: {self.focal_length_mm} mm")
         #specify the sensing mode for the image
         self.sensing_mode = 3 #0 (bin), 1 (bin), 2 (crop), 3(bin) for the fisheye lens camera
         print(f"Using sensing mode: {self.sensing_mode}")
@@ -86,7 +89,8 @@ class Camera():
             },
 
             #other parameters
-            transform = libcamera.Transform(hflip=True, vflip=False), #params set so that the positive and negative axis are in right direction
+            transform = libcamera.Transform(hflip=True, vflip=False), #params set so that the positive and negative axis are in "right" direction (left/right=-/+ and down/up=-/+)
+            #transform = libcamera.Transform(hflip=True, vflip=True), #params set so that the positive and negative axis are in human oriented direction (left, right, up, and down are what we are used to)
             queue = True,
             display = None #None, "main", or "lores"
         )
@@ -103,7 +107,7 @@ class Camera():
         self.color_filter = ColorFilter()
 
     #calibrate the camera by obtaining a JSON file or a list of images to create a JSON
-    def _calibrate_camera(self, calibration_folder_path, checkerboard_inner_corners=(4,4)):
+    def _calibrate_camera(self, calibration_folder_path, checkerboard_box_length_mm, checkerboard_inner_corner_dimension, isFisheye):
         #First try to find the JSON file
         try:
             #load the JSON file if found
@@ -119,78 +123,113 @@ class Camera():
         #If the JSON File doesn't exist, find and use png images in the calibration folder
         except:
             #referencing: https://docs.opencv.org/4.x/dc/dbb/tutorial_py_calibration.html
+            #additional reference: https://medium.com/@kennethjiang/calibrate-fisheye-lens-using-opencv-333b05afa0b0
             print(f"No calibration JSON file found! Attempting to calibrate camera via checkerboard images...")
             # termination criteria
-            criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
-            # prepare object points: (0,0,0), (1,0,0), (2,0,0) ....,(4,4,0)
-            object_point = np.zeros((checkerboard_inner_corners[0]*checkerboard_inner_corners[1],3), np.float32)
-            object_point[:,:2] = np.mgrid[0:checkerboard_inner_corners[0], 0:checkerboard_inner_corners[1]].T.reshape(-1, 2)
+            subpixel_criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
+            fisheye_calibration_flags = cv2.fisheye.CALIB_RECOMPUTE_EXTRINSIC + cv2.fisheye.CALIB_CHECK_COND + cv2.fisheye.CALIB_FIX_SKEW
+            # prepare object points: (0,0,0), (1,0,0), (2,0,0) ....,(4,4,0) (then multiply by checkerboard box length)
+            object_point = np.zeros((1, checkerboard_inner_corner_dimension[0]*checkerboard_inner_corner_dimension[1],3), np.float32)
+            object_point[0,:,:2] = np.mgrid[0:checkerboard_inner_corner_dimension[0], 0:checkerboard_inner_corner_dimension[1]].T.reshape(-1, 2)
+            object_point = object_point*checkerboard_box_length_mm
             #setup initial variables used in loop
             object_point_list = [] # 3d point in real world space
             image_point_list = [] # 2d points in image plane.
+            #get a list of all file paths
+            calibration_image_path_key = os.path.join(calibration_folder_path, "*.png")
+            image_path_list = glob.glob(calibration_image_path_key)
+            #loop through each image
             image_index = 0
-            try:
-                while(1):
-                    #read the image and convert it to grayscale
-                    image_path = os.path.join(calibration_folder_path, f"calibration_img{image_index}.png")
-                    print(f"Reading image {image_index} from: {image_path}")
-                    image = cv2.imread(image_path)
-                    gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-                    print(f"Image {image_index} found!")
-                    #potential fix for detecting checkerboard recerencing: https://stackoverflow.com/questions/66225558/cv2-findchessboardcorners-fails-to-find-corners
-                    #hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-                    #lower_bound = np.array([0, 0, 145])
-                    #upper_bound = np.array([180, 60, 255])
-                    #mask = cv2.inRange(hsv_image, lower_bound, upper_bound)
-                    #find the corners of the chessboard
-                    ret, corners = cv2.findChessboardCorners(gray_image, checkerboard_inner_corners, flags=None)
-                    #see if the image was found
-                    if(ret):
-                        #If found, add object point and image point
-                        object_point_list.append(object_point)
-                        image_point = cv2.cornerSubPix(gray_image, corners, winSize=(11,11), zeroZone=(-1,-1), criteria=criteria)
-                        image_point_list.append(image_point)
-                    #if corners on calibration image were not found, then indicate to the user
-                    else:
-                        print(f"Calibration of image {image_index} failed to be found!")
-                        raise Exception(f"Calibration error on image {image_index}")
-                    #increment image index by 1
-                    image_index += 1
-            except Exception as e:
-                #if images were successfully parsed, solve for calibration constants
-                if(image_index > 0):
-                    print(f"{image_index} calibration images found in folder: {calibration_folder_path}")
-                    print("Computing calibration parameters...")
-                    ret, camera_matrix, distortion_coefficients, rotation_vectors, translation_vectors = cv2.calibrateCamera(object_point_list, image_point_list, imageSize=gray_image.shape[::-1], cameraMatrix=None, distCoeffs=None)
-                    #if calibration parameters successfully computed, save them to a JSON
-                    if(ret):
-                        print("Calibration parameters successfully found!")
-                        #save parameters to a JSON file
-                        calibration_data_JSON = {
-                            "distortion_coefficients" : distortion_coefficients.tolist(),
-                            "camera_matrix" : camera_matrix.tolist(),
-                        }
-                        with open(calibration_file_path, 'w') as calibration_file:
-                            json_string = json.dump(calibration_data_JSON, calibration_file, indent=2)
-                        #read and save the data from the JSON file int the camera object
-                        with open(calibration_file_path, 'r') as calibration_file:
-                            self.calibration_data = json.load(calibration_file)
-                            #convert list data to numpy arrays
-                            for key in self.calibration_data.keys():
-                                self.calibration_data[key] = np.array(self.calibration_data[key])
-                        #Camera successfully calibrated, so return true
-                        return(True)
-                    #if calibration parameters failed to be found, indicate it to the user
-                    else:
-                        print(f"Calibration parameters could not be found!")
-                        #Camera did not successfully calibrate, so return false
-                        return(False)
-                        #raise Exception(f"Calibration computation error on image set!")
-                #if images were not successfully parsed, indicate it to the user
+            for image_path in image_path_list:
+                print(f"Reading image {image_index} from: {image_path}")
+                image = cv2.imread(image_path)
+                gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+                print(f"Image {image_index} found!")
+                #potential fix for detecting checkerboard (maybe faster & better) - recerencing: https://stackoverflow.com/questions/66225558/cv2-findchessboardcorners-fails-to-find-corners
+                hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+                lower_bound = np.array([0, 0, 145])
+                upper_bound = np.array([180, 60, 255])
+                mask = cv2.inRange(hsv_image, lower_bound, upper_bound)
+                #find the corners of the chessboard
+                checkerboard_image = mask
+                chessboard_corner_location_flags = cv2.CALIB_CB_ADAPTIVE_THRESH + cv2.CALIB_CB_FAST_CHECK + cv2.CALIB_CB_NORMALIZE_IMAGE
+                ret, corners = cv2.findChessboardCorners(checkerboard_image, checkerboard_inner_corner_dimension, flags=chessboard_corner_location_flags)
+                #see if the image was found
+                if(ret):
+                    #If found, add object point and image point
+                    object_point_list.append(object_point)
+                    image_point = cv2.cornerSubPix(gray_image, corners, winSize=(11,11), zeroZone=(-1,-1), criteria=subpixel_criteria)
+                    image_point_list.append(image_point)
+                #if corners on calibration image were not found, then indicate to the user
                 else:
-                    print("Error! No calibration file or images found! Aborting calibration process!")
+                    print(f"Calibration of image {image_index} failed to be found!")
+                    #raise Exception(f"Calibration error on image {image_index}")
+                #increment image index by 1
+                image_index += 1
+            #if images were successfully parsed, solve for calibration constants
+            if(image_index > 0):
+                print(f"{image_index} calibration images found in folder: {calibration_folder_path}")
+                print("Computing calibration parameters...")
+                #using fisheye model
+                if(isFisheye):
+                    print("Using fisheye camera model...")
+                    #change object point dimensions according to https://github.com/opencv/opencv/issues/9150
+                    
+                    
+                    
+                    
+                    #
+                    #
+                    #
+                    #MAY NEED TO FIX THE CRITERIA TO DELETE IMAGE POINTS THAT ARE TOO CLOSE TO EDGE AND TRY AGAIN: https://stackoverflow.com/questions/49038464/opencv-calibrate-fisheye-lens-error-ill-conditioned-matrix
+                    #
+                    #
+                    #
+                    fisheye_calibration_criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 1e-6)
+                    ret, camera_matrix, distortion_coefficients, rotation_vectors, translation_vectors = cv2.fisheye.calibrate(
+                        object_point_list, 
+                        image_point_list, 
+                        image_size=gray_image.shape[::-1],
+                        K = np.zeros((3, 3)),
+                        D = np.zeros((4, 1)),
+                        rvecs = [np.zeros((1, 1, 3), dtype=np.float64) for i in range(image_index)],
+                        tvecs = [np.zeros((1, 1, 3), dtype=np.float64) for i in range(image_index)],
+                        flags = fisheye_calibration_flags,
+                        criteria = fisheye_calibration_criteria
+                    )
+                #using regular model
+                else:
+                    print("Using regular camera model...")
+                    ret, camera_matrix, distortion_coefficients, rotation_vectors, translation_vectors = cv2.calibrateCamera(object_point_list, image_point_list, imageSize=gray_image.shape[::-1], cameraMatrix=None, distCoeffs=None)
+                #if calibration parameters successfully computed, save them to a JSON
+                if(ret):
+                    print("Calibration parameters successfully found!")
+                    #save parameters to a JSON file
+                    calibration_data_JSON = {
+                        "distortion_coefficients" : distortion_coefficients.tolist(),
+                        "camera_matrix" : camera_matrix.tolist(),
+                    }
+                    with open(calibration_file_path, 'w') as calibration_file:
+                        json_string = json.dump(calibration_data_JSON, calibration_file, indent=2)
+                    #read and save the data from the JSON file int the camera object
+                    with open(calibration_file_path, 'r') as calibration_file:
+                        self.calibration_data = json.load(calibration_file)
+                        #convert list data to numpy arrays
+                        for key in self.calibration_data.keys():
+                            self.calibration_data[key] = np.array(self.calibration_data[key])
+                    #Camera successfully calibrated, so return true
+                    return(True)
+                #if calibration parameters failed to be found, indicate it to the user
+                else:
+                    print(f"Calibration parameters could not be found!")
                     #Camera did not successfully calibrate, so return false
                     return(False)
+                    #raise Exception(f"Calibration computation error on image set!")
+            #if images were not successfully parsed, indicate it to the user
+            else:
+                print("Error! No calibration file or images found! Aborting calibration process!")
+                #Camera did not successfully calibrate, so return false
+                return(False)
         #catch all return statement (assume unsuccessful calibration)
         return(False)
 
@@ -261,10 +300,6 @@ class Camera():
         #compute the new optimal camera matrix to better undistort the image
         new_camera_matrix, roi = cv2.getOptimalNewCameraMatrix(self.calibration_data["camera_matrix"], self.calibration_data["distortion_coefficients"], imageSize=(w,h), alpha=alpha, newImgSize=(w,h))
         new_image = cv2.undistort(uncalibrated_image, self.calibration_data["camera_matrix"], self.calibration_data["distortion_coefficients"], dst=None, newCameraMatrix=new_camera_matrix)
-        # crop the image
-        print(roi)
-        #x, y, w, h = roi
-        #new_image = new_image[y:y+h, x:x+w]
         return(new_image)
 
     #Get the uncalibrated main frame image from the camera

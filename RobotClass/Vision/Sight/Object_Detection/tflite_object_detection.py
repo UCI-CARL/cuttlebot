@@ -5,7 +5,7 @@
 # https://github.com/tensorflow/tensorflow/blob/master/tensorflow/lite/examples/python/label_image.py
 
 import sys
-sys.path.append("../RobotClass/Vision/Sight") # For importing the Camera class defined in another directory
+sys.path.append("/home/cuttlebot/cuttlebot/RobotClass/Vision/Sight") # For importing the Camera class defined in another directory
 
 # Import packages
 import os
@@ -72,8 +72,8 @@ with open(PATH_TO_LABELS, 'r') as f:
 # Have to do a weird fix for label map if using the COCO "starter model" from
 # https://www.tensorflow.org/lite/models/object_detection/overview
 # First label is '???', which has to be removed.
-# if labels[0] == '???':
-#     del(labels[0])
+if labels[0] == '???':
+    del(labels[0])
 
 # Load the Tensorflow Lite model.
 # If using Edge TPU, use special load_delegate argument

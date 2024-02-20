@@ -1,4 +1,4 @@
-#The robot class (for now) will be composed of the RVR+, Vision module, and claw (...adding soon)
+#The robot class (for now) will be composed of the RVR+, Vision module, and claw
 import time
 import numpy as np
 import sphero_sdk as sphero
@@ -19,14 +19,14 @@ class Robot():
         #Reset the YAW on the rvr
         self.rvr.reset_yaw()
         #Now the claw (pins 11 and 13 for the limit switches are not currently in use)
-        self.claw = Claw(servo_pin=7, right_limit_switch_pin=11, left_limit_switch_pin=13)
+        self.claw = Claw(servo_pin=7, right_limit_switch_pin=16, left_limit_switch_pin=18)
         #Last, the vision module
         self.vision = Perception()
 
     def do_nothing(self):
         while(1):
             pass
-    
+
     def test_rvr_sensors(self):
         self.rvr.sensor_control.sensors["Locator"][0].enable_streaming_service("Locator")
         print(self.rvr.sensor_control.sensors["Locator"][0].enabled_streaming_services_by_id)
@@ -41,6 +41,132 @@ class Robot():
         self.rvr.sensor_control.sensors["Locator"][0].disable_all_streaming_services()
         print("Closed!")
     
+    def _shake(self):
+        #start at mid
+        velocity = 0.0
+        delay = 0.01
+        delta_v = 0.2
+
+        #up
+        for i in range(5):
+            velocity += delta_v
+            self.rvr.drive_tank_si_units(
+                left_velocity = velocity,
+                right_velocity = -velocity
+            )
+            time.sleep(delay)
+
+        #down out
+        for i in range(5):
+            velocity -= delta_v
+            self.rvr.drive_tank_si_units(
+                left_velocity = velocity,
+                right_velocity = -velocity
+            )
+            time.sleep(delay)
+
+        #up
+        for i in range(5):
+            velocity += delta_v
+            self.rvr.drive_tank_si_units(
+                left_velocity = -velocity,
+                right_velocity = velocity
+            )
+            time.sleep(delay)
+
+        #down center
+        for i in range(5):
+            velocity -= delta_v
+            self.rvr.drive_tank_si_units(
+                left_velocity = -velocity,
+                right_velocity = velocity
+            )
+            time.sleep(delay)
+
+        #up
+        for i in range(5):
+            velocity += delta_v
+            self.rvr.drive_tank_si_units(
+                left_velocity = -velocity,
+                right_velocity = velocity
+            )
+            time.sleep(delay)
+
+        #down out
+        for i in range(5):
+            velocity -= delta_v
+            self.rvr.drive_tank_si_units(
+                left_velocity = -velocity,
+                right_velocity = velocity
+            )
+            time.sleep(delay)
+
+        #up
+        for i in range(5):
+            velocity += delta_v
+            self.rvr.drive_tank_si_units(
+                left_velocity = velocity,
+                right_velocity = -velocity
+            )
+            time.sleep(delay)
+
+        #down center
+        for i in range(5):
+            velocity -= delta_v
+            self.rvr.drive_tank_si_units(
+                left_velocity = velocity,
+                right_velocity = -velocity
+            )
+            time.sleep(delay)
+
+    def rapid_backup(self):
+        velocity = 1.0
+        delay = 0.25
+        self.rvr.drive_tank_si_units(
+            left_velocity = -velocity,
+            right_velocity = -velocity
+        )
+        time.sleep(delay)
+        self.rvr.drive_tank_si_units(
+            left_velocity = 0,
+            right_velocity = 0
+        )
+
+
+    def test_claw(self):
+        self.claw.set_percent_open(100)
+        print("opening...")
+        time.sleep(2)
+        print("open")
+        self.claw.capture_object()
+        print("Object Captured!")
+        time.sleep(1)
+        self._shake()
+        #self.rapid_backup()
+        #1 second time delay
+        time.sleep(1)
+        if(self.claw.is_object_captured()):
+            print("GOOD! :)")
+            time.sleep(1)
+            self.claw.release_object()
+            print("Object Released!")
+        else:
+            print("BAD! D:")
+
+    def camera_mode(self):
+        print("Entering camera mode. Press ESC to quit")
+        try:
+            while(cv2.waitKey(100) != 27):
+                    img = self.vision.camera.get_calibrated_image(alpha=1.0)
+                    #present the image in a scaled down form (to fit image on screen)
+                    scaled_down_image = cv2.resize(img, (640, 480))
+                    cv2.imshow(f"Camera Image", scaled_down_image)
+            #destroys all the windows we created before exiting the program
+            cv2.destroyAllWindows()
+        #Incase of error or interrupt in loop, close all cv windows
+        except:
+            cv2.destroyAllWindows()
+
     def get_new_calibration_images(self, camera_ID):
         #set up camera path to save images to
         print(f"Getting new calibration images for camera {camera_ID}...")
@@ -52,21 +178,45 @@ class Robot():
         #initiallize image index
         img_index = 0
         #constantly loop until hitting ESC
+        #press SPACE to save image
+        print("Starting program...")
+        print("Press SPACE to save image and ESC to exit")
+        print("=========================")
+        #get the first frame to set up the camera window
+        window_identifier = f"Camera {camera_ID} Window"
+        img = self.vision.camera.get_uncalibrated_image()
+        #present the image in a scaled down form (to fit image on screen)
+        scaled_down_image = cv2.resize(img, (640, 480))
+        cv2.imshow(window_identifier, scaled_down_image)
+        window_title = f"Camera: {camera_ID}; Image: {img_index}; Frame Countdown: 0"
+        cv2.setWindowTitle(window_identifier, window_title)
+        #set an optional frame timer to indicate when image will be taken
+        frame_timer = 35
+        frame_count = frame_timer
         while(1):
-            #press SPACE to save image
-            print("Press SPACE to save image")
-            while(cv2.waitKey(50) != 32):
-                img = self.vision.camera.get_uncalibrated_image()
-                #present the image
-                cv2.imshow(f"Camera {camera_ID} Image", img)
-            camera_image_path = os.path.join(camera_directory_path, f"calibration_img{img_index}.png")
-            cv2.imwrite(camera_image_path, img)
-            #increment image index
-            img_index += 1
+            img = self.vision.camera.get_uncalibrated_image()
+            #present the image in a scaled down form (to fit image on screen)
+            scaled_down_image = cv2.resize(img, (640, 480))
+            cv2.imshow(window_identifier, scaled_down_image)
+            #change the title of the window
+            window_title = f"Camera: {camera_ID}; Image: {img_index}; Frame Countdown: {frame_count}"
+            cv2.setWindowTitle(window_identifier, window_title)
+            #press SPACE to save the image
+            if(cv2.waitKey(1) == 32 or frame_count <= 0):
+                #create image directory path
+                camera_image_path = os.path.join(camera_directory_path, f"calibration_img{img_index}.png")
+                #save image
+                cv2.imwrite(camera_image_path, img)
+                #increment image index
+                img_index += 1
+                #reset frame count
+                frame_count = frame_timer
             #press ESC to exit
-            print("Press ESC to exit and SPACE to continue")
-            if(cv2.waitKey(0) != 27):
+            if(cv2.waitKey(1) == 27):
+                #exit loop
                 break
+            #increase frame count
+            frame_count -= 1
         #print the number of images saved
         print(f"{img_index} images saved to: {camera_directory_path}")
         #destroys all the windows we created before exiting the program
@@ -129,14 +279,14 @@ class Robot():
                     right_velocity = driving_right_velocity
                 )
 
-    def align_with_object_at_distance():
+    def align_with_object_at_distance(self):
         #Look for red object
         self.vision.camera.set_color_filter(0, precision=15)
         #initiallize tank drive speed variabels
         driving_left_velocity = 0
         driving_right_velocity = 0
         prev_width = None
-        prev_
+        ###################prev_
         #reset IMU values
         self.rvr.reset_yaw()
         time.sleep(0.1)
@@ -283,6 +433,7 @@ class Robot():
             distance_moved_radially_inward=movement
         )
         print(obj_depth)
+        return(obj_depth)
 
 
     def get_object_depth_info_side_to_side(self):
@@ -360,6 +511,73 @@ class Robot():
             #close the claw
             self.claw.set_percent_open(0)
             time.sleep(2.5)
+
+
+
+
+
+
+
+    def test_move_and_grab(self):
+        #Look for red object
+        self.vision.camera.set_color_filter(0, precision=15)
+        #initiallize tank drive speed variabels
+        driving_left_velocity = 0
+        driving_right_velocity = 0
+        #control loop
+        while(1):
+            #get the color mask
+            mask = self.vision.camera.get_color_mask()
+            #If there are less than 20 active pixels
+            if(np.sum(mask/255) < 20):
+                #stop the robot
+                driving_left_velocity *= 0.75
+                driving_right_velocity *= 0.75
+                self.rvr.drive_tank_si_units(
+                    left_velocity = driving_left_velocity,
+                    right_velocity = driving_right_velocity
+                )
+                time.sleep(0.1)
+                continue
+            #The mask exists and we know we have found an objects (>=20 active pixels in mask)
+            #Get center index in (Row,Col) format
+            mask_center = np.flip((np.array(mask.shape)-1)/2)
+            #avg_point = self.vision.get_avg_mask_point(mask, relative_point=mask_center)
+            #Get the largest contour for the mask and find the centroid relative to the center of the mask
+            largest_contour = self.vision.get_largest_contour(mask)
+            largest_contour_bounding_box = self.vision.get_contour_bounding_box(largest_contour)
+            largest_contour_centroid = self.vision.get_contour_bounding_box_centroid(largest_contour_bounding_box)
+            rel_point = self.vision.get_relative_position(largest_contour_centroid, relative_point=mask_center)
+            #Now update the pan tilt unit according to the output of the control system (avg_point); with reference point at (0,0)
+            self.vision.pan_tilt_unit.update(rel_point)
+            #Now move the robot according to the current angle of the pan unit
+            cur_pan_angle = (self.vision.pan_tilt_unit.controller.PWM_duty_cycles[0]-7.5)/0.055556 #!!!need to add servo class to PTU so we can get the servo angle
+            proportion = 0.3
+            robot_proportion_angle_deg = proportion*cur_pan_angle
+            #Filter out small robot movements
+            if(np.abs(robot_proportion_angle_deg) < 1.5):
+                driving_left_velocity = 0
+                driving_right_velocity = 0
+            #if the movement is big enough, then move the robot
+            else:
+                driving_left_velocity = -robot_proportion_angle_deg/90.0
+                driving_right_velocity = robot_proportion_angle_deg/90.0
+            #in addition to turning the robot, add an offset to move it forward toward the object of intetest
+            velocity_limit = 0.40 #m/s
+            #VVV THE KEY PART IS HERE VVV
+            optimal_object_width = 150
+            driving_left_velocity += velocity_limit*(1.0 - largest_contour_bounding_box[2]/optimal_object_width)
+            driving_right_velocity += velocity_limit*(1.0 - largest_contour_bounding_box[2]/optimal_object_width)
+            #after computing the new velocity of the wheels, set the values to the rvr
+            self.rvr.drive_tank_si_units(
+                    left_velocity = driving_left_velocity,
+                    right_velocity = driving_right_velocity
+                )
+            #Last, check if bounding box is equal to optimal width & grab (this is a hardcoded method)
+
+
+
+
 
 
     def move_to_color(self):
