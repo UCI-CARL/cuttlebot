@@ -638,7 +638,7 @@ class Robot():
 
     #face the robot to a color of interest
     def face_color(self):
-        self.vision.camera.set_color_filter(120, precision=15)
+        self.vision.camera.set_color_filter(0, precision=15)
         while(1):
             mask = self.vision.camera.get_color_mask()
             #If there are less than 10 active pixels

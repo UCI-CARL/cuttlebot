@@ -7,8 +7,8 @@ import time
 #set GPIO numbering mode (left-right;top-down numbering starting from 1)
 GPIO.setmode(GPIO.BOARD)
 
-#Set pin 11 as an output pin
-servo_pin = 11
+#Set pin 32 as an output pin
+servo_pin = 32 #pan servo (Working out issues - NOTE: should use SERVO class instead)
 GPIO.setup(servo_pin, GPIO.OUT)
 
 #set PWM to 50Hz (servo expects 50Hz PWM to read from: 20 ms per pulse)

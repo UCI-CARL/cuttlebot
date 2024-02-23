@@ -53,7 +53,7 @@ class Camera():
         print("Configuring Camera Sensing Mode")
         print("=========================")
         #specify the sensing mode for the image
-        self.sensing_mode = 3 #0 (bin), 1 (bin), 2 (crop), 3(bin) for the fisheye lens camera
+        self.sensing_mode = 0 #0 (bin), 1 (bin), 2 (crop), 3(bin) for the fisheye lens camera
         print(f"Using sensing mode: {self.sensing_mode}")
         print(f"> {self.picam2.sensor_modes[self.sensing_mode]}")
         #save width and height of full image for camera
@@ -61,8 +61,8 @@ class Camera():
         self.width_full = full_size_sensing_mode["size"][0] #2592 max for fisheye cam
         self.height_full = full_size_sensing_mode["size"][1] #1944 max for fisheye cam
         #set image crop
-        self.width = 2592#640#320
-        self.height = 1944#480#280
+        self.width = 320
+        self.height = 280
         print(f"Main stream image size: (W={self.width}, H={self.height})")
         #compute new FOV for diagonal, x, and y directions from new image width
         dim_full_wh = np.array([self.width_full, self.height_full])
