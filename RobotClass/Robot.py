@@ -512,12 +512,6 @@ class Robot():
             self.claw.set_percent_open(0)
             time.sleep(2.5)
 
-
-
-
-
-
-
     def test_move_and_grab(self):
         #Look for red object
         self.vision.camera.set_color_filter(0, precision=15)
@@ -575,11 +569,6 @@ class Robot():
                 )
             #Last, check if bounding box is equal to optimal width & grab (this is a hardcoded method)
 
-
-
-
-
-
     def move_to_color(self):
         #Look for red object
         self.vision.camera.set_color_filter(0, precision=15)
@@ -588,9 +577,9 @@ class Robot():
         driving_right_velocity = 0
         #control loop
         while(1):
-            #get the color mask
+            # Get the color mask
             mask = self.vision.camera.get_color_mask()
-            #If there are less than 20 active pixels
+            # If there are less than 20 active pixels
             if(np.sum(mask/255) < 20):
                 #stop the robot
                 driving_left_velocity *= 0.75
@@ -625,8 +614,9 @@ class Robot():
                 driving_left_velocity = -robot_proportion_angle_deg/90.0
                 driving_right_velocity = robot_proportion_angle_deg/90.0
             #in addition to turning the robot, add an offset to move it forward toward the object of intetest
+            print("what is the largest contour bounding box:", largest_contour_bounding_box[2])
             velocity_limit = 0.50 #m/s
-            optimal_object_width = 125
+            optimal_object_width = 200
             driving_left_velocity += velocity_limit*(1.0 - largest_contour_bounding_box[2]/optimal_object_width)
             driving_right_velocity += velocity_limit*(1.0 - largest_contour_bounding_box[2]/optimal_object_width)
             #after computing the new velocity of the wheels, set the values to the rvr
@@ -634,6 +624,10 @@ class Robot():
                     left_velocity = driving_left_velocity,
                     right_velocity = driving_right_velocity
                 )
+
+            # Show the camera view and the masked image
+            cv2.imshow("frame", self.vision.camera.get_image())
+            cv2.imshow("mask", mask)
 
 
     #face the robot to a color of interest
