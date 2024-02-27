@@ -19,7 +19,7 @@ class Robot():
         #Reset the YAW on the rvr
         self.rvr.reset_yaw()
         #Now the claw (pins 11 and 13 for the limit switches are not currently in use)
-        self.claw = Claw(servo_pin=7, right_limit_switch_pin=16, left_limit_switch_pin=18)
+        self.claw = Claw(servo_pin=11, right_limit_switch_pin=13, left_limit_switch_pin=15)
         #Last, the vision module
         self.vision = Perception()
 
@@ -575,6 +575,8 @@ class Robot():
         #initiallize tank drive speed variabels
         driving_left_velocity = 0
         driving_right_velocity = 0
+
+        is_claw_closed = False # Initialize the claw status
         #control loop
         while(1):
             # Get the color mask
@@ -614,7 +616,6 @@ class Robot():
                 driving_left_velocity = -robot_proportion_angle_deg/90.0
                 driving_right_velocity = robot_proportion_angle_deg/90.0
             #in addition to turning the robot, add an offset to move it forward toward the object of intetest
-            print("what is the largest contour bounding box:", largest_contour_bounding_box[2])
             velocity_limit = 0.50 #m/s
             optimal_object_width = 200
             driving_left_velocity += velocity_limit*(1.0 - largest_contour_bounding_box[2]/optimal_object_width)
@@ -624,6 +625,22 @@ class Robot():
                     left_velocity = driving_left_velocity,
                     right_velocity = driving_right_velocity
                 )
+            
+            print("driving left velocity:", driving_left_velocity)
+            print("driving_right_velocity:", driving_right_velocity)
+            if abs(driving_left_velocity) <= 0.1 and abs(driving_right_velocity) <= 0.1 and not is_claw_closed:
+                # When the object is close enough, close the claw and stop the robot
+                self.claw.capture_object()
+                is_claw_closed = True
+                self.rvr.drive_tank_si_units(
+                    left_velocity = 0,
+                    right_velocity = 0
+                )
+
+                # Open the claw after some time
+                time.sleep(2)
+                self.claw.release_object()
+                break
 
             # Show the camera view and the masked image
             cv2.imshow("frame", self.vision.camera.get_image())

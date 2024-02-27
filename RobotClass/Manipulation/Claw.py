@@ -50,11 +50,11 @@ class Claw():
         while(open_percent >= 0):
             #Set new claw state
             self.set_percent_open(open_percent)
+            #sleep for short amount of time and decrease percent openess
+            time.sleep(0.02)
             #if object is detected to be captured, then return to execute next task
             if(self.is_object_captured()):
                 break
-            #sleep for short amount of time and decrease percent openess
-            time.sleep(0.02)
             open_percent -= 1
 
     def release_object(self):
@@ -65,8 +65,8 @@ class Claw():
             #Set new claw state
             self.set_percent_open(open_percent)
             #if object is detected to be captured, then return to execute next task
-            if(self.is_object_fully_released()):
-                break
+            # if(self.is_object_fully_released()):
+            #     break
             #sleep for short amount of time and increment percent openess
             time.sleep(0.02)
             open_percent += 1

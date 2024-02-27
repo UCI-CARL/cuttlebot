@@ -42,20 +42,21 @@ class Claw():
         return((not self.right_limit_switch.is_pressed()) and (not self.left_limit_switch.is_pressed()))
     
     #Open the claw and slowly close it until an object is detected or the closing boundary is reached
-    #WILL NEED TO FIX LATER TO INCORPORATE CONCURRENCY
+    # TODO: WILL NEED TO FIX LATER TO INCORPORATE CONCURRENCY
     def capture_object(self):
         #open the claw (start at 100%)
         open_percent = 100
-        #increment down, slowly closing the claw
-        while(open_percent >= 0):
+        while open_percent >= 0:
+            print("got here")
             #Set new claw state
             self.set_percent_open(open_percent)
+            time.sleep(2)
             #if object is detected to be captured, then return to execute next task
             if(self.is_object_captured()):
+                print("break")
                 break
             #sleep for short amount of time and decrease percent openess
-            time.sleep(0.75)
-            open_percent -= 1
+            open_percent -= 25
 
     def release_object(self):
         #start with the claw at its current state
