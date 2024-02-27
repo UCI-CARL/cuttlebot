@@ -12,6 +12,31 @@ class Perception():
         self.camera = Camera(camera_ID=None)#self.camera = Camera(camera_ID=0) #NEED TO SOLVE ISSUES CAMERA CALIBRATION
         self.pan_tilt_unit = PanTiltUnit()
 
+    #Determine if the defined colors passed to the function are in view of the camera
+    def get_colors_in_view(self, color_dict, precision=15):
+        #initiallize a list to store the colored objects that appear in the image
+        colors_in_view = list()
+        #get the current view of the robot
+        image = self.camera.get_image()
+        #loop through each color in the color dictionary
+        for color in color_dict.keys():
+            #set the color filter and get the mask in the picture
+            self.camera.set_color_filter(color_dict[color], precision)
+            color_mask = self.camera.color_filter.get_color_filter_mask(image)
+            #condition 1: the mask must have possibly found an object (more than 20 active pixels)
+            if(np.sum(color_mask/255) < 20):
+                continue
+            #get the width of the bounding box of the largest countour
+            largest_contour = self.get_largest_contour(color_mask)
+            largest_contour_bounding_box = self.get_contour_bounding_box(largest_contour)
+            pixel_width = largest_contour_bounding_box[2]
+            #condition 2: the object with have a width no less than 5 pixels (reduces chance of contour being random noise)
+            if(pixel_width >= 5):
+                colors_in_view.append(color)
+        #return the list of colors in view
+        return(colors_in_view)
+    
+
     #Method to track a certain color in the camera's view
     def track_color(self, hue, precision=15):
         self.camera.set_color_filter(hue, precision)

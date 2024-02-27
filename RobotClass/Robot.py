@@ -4,8 +4,10 @@ import numpy as np
 import sphero_sdk as sphero
 import cv2
 import os
+import random.random as rand
 from Manipulation.Claw import Claw
 from Vision.Perception import Perception
+from Cognition.Cognition import Cognition
 
 class Robot():
     #class constructor
@@ -13,15 +15,171 @@ class Robot():
         #Instantiate the modules on the robot alongside the robot itself
         #First the rvr
         self.rvr = sphero.SpheroRvrObserver()
-        self.rvr.wake()
         #give the rvr time to wake up
+        self.rvr.wake()
         time.sleep(2)
         #Reset the YAW on the rvr
         self.rvr.reset_yaw()
+        time.sleep(1)
+        #reset the XY locator
+        self.rvr.reset_locator_x_and_y()
+        time.sleep(1)
         #Now the claw (pins 11 and 13 for the limit switches are not currently in use)
         self.claw = Claw(servo_pin=11, right_limit_switch_pin=13, left_limit_switch_pin=15)
-        #Last, the vision module
+        #Then the vision module
         self.vision = Perception()
+        #Last, the ognition module
+        self.cognition = Cognition()
+
+    #turn randomly to -90, 0, or 90 degrees
+    def _explore(self):
+        random_val = int(3*rand())
+        self.rvr.drive_to_position_si(
+            yaw_angle=random_val*90,
+            x=0,
+            y=0,
+            linear_speed=0.25,
+            flags=0
+        )
+        time.sleep(1)
+
+    #either approach or run
+    def _perform_action(self, action, color):
+        if(action == "APPROACH"):
+            reward = self._move_and_grab_color(color)
+        else: #RUN
+            self.rvr.drive_tank_si_units(
+                left_velocity = -0.5,
+                right_velocity = -0.5
+            )
+            time.sleep(0.25)
+            self.rvr.drive_tank_si_units(
+                left_velocity = 0,
+                right_velocity = 0
+            )
+            reward = 0
+        #return to center and reset camera
+        self.vision.pan_tilt_unit.set_servo_angles(0, 0)
+        self.rvr.drive_to_position_si(
+            yaw_angle=0,
+            x=0,
+            y=0,
+            linear_speed=0.25,
+            flags=0
+        )
+        time.sleep(3)
+        self.claw.release_object()
+        time.sleep(2)
+        return(reward)
+
+
+    #see color and perform action
+    def forage(self):
+        #initiallize a color dictionary: assign a string to a hue value
+        color_dict = {
+            "RED" : 0,
+            "GREEN" : 80,
+            "BLUE": 120,
+        }
+        #loop forever and keep updating values
+        while(1):
+            #Get list of colors in view of the camera
+            colors_in_view = self.vision.get_colors_in_view(color_dict)
+            #Check if any colors were found
+            if(len(colors_in_view) == 0):
+                #explore: rotate to a random direction and see if any pictures were found again
+                self._explore()
+                continue
+            #Define the state of the robot: prioritize state with the most negative possible outcome
+            state = self.cognition.get_state_with_largest_punishment(colors_in_view)
+            action = self.cognition.get_action(state)
+            reward = self._perform_action(action, color=color_dict[action])
+            #new_state = self.cognition.get_new_state(state, action)
+            self.cognition.update_q_table(state, action, reward)
+
+    def _move_and_grab_color(self, color):
+        #Look for red object
+        self.vision.camera.set_color_filter(color, precision=15)
+        if(color == 0):
+            optimal_object_width = 200
+        else:
+            optimal_object_width = 250
+        #initiallize tank drive speed variabels
+        driving_left_velocity = 0
+        driving_right_velocity = 0
+
+        is_claw_closed = False # Initialize the claw status
+        #control loop
+        while(1):
+            # Get the color mask
+            mask = self.vision.camera.get_color_mask()
+            # If there are less than 20 active pixels
+            if(np.sum(mask/255) < 20):
+                #stop the robot
+                driving_left_velocity *= 0.75
+                driving_right_velocity *= 0.75
+                self.rvr.drive_tank_si_units(
+                    left_velocity = driving_left_velocity,
+                    right_velocity = driving_right_velocity
+                )
+                time.sleep(0.1)
+                continue
+            #The mask exists and we know we have found an objects (>=20 active pixels in mask)
+            #Get center index in (Row,Col) format
+            mask_center = np.flip((np.array(mask.shape)-1)/2)
+            #avg_point = self.vision.get_avg_mask_point(mask, relative_point=mask_center)
+            #Get the largest contour for the mask and find the centroid relative to the center of the mask
+            largest_contour = self.vision.get_largest_contour(mask)
+            largest_contour_bounding_box = self.vision.get_contour_bounding_box(largest_contour)
+            largest_contour_centroid = self.vision.get_contour_bounding_box_centroid(largest_contour_bounding_box)
+            rel_point = self.vision.get_relative_position(largest_contour_centroid, relative_point=mask_center)
+            #Now update the pan tilt unit according to the output of the control system (avg_point); with reference point at (0,0)
+            self.vision.pan_tilt_unit.update(rel_point)
+            #Now move the robot according to the current angle of the pan unit
+            cur_pan_angle = (self.vision.pan_tilt_unit.controller.PWM_duty_cycles[0]-7.5)/0.055556 #!!!need to add servo class to PTU so we can get the servo angle
+            proportion = 0.3
+            robot_proportion_angle_deg = proportion*cur_pan_angle
+            #Filter out small robot movements
+            if(np.abs(robot_proportion_angle_deg) < 1.5):
+                driving_left_velocity = 0
+                driving_right_velocity = 0
+            #if the movement is big enough, then move the robot
+            else:
+                driving_left_velocity = -robot_proportion_angle_deg/90.0
+                driving_right_velocity = robot_proportion_angle_deg/90.0
+            #in addition to turning the robot, add an offset to move it forward toward the object of intetest
+            velocity_limit = 0.40 #m/s
+            driving_left_velocity += velocity_limit*(1.0 - largest_contour_bounding_box[2]/optimal_object_width)
+            driving_right_velocity += velocity_limit*(1.0 - largest_contour_bounding_box[2]/optimal_object_width)
+            #after computing the new velocity of the wheels, set the values to the rvr
+            self.rvr.drive_tank_si_units(
+                    left_velocity = driving_left_velocity,
+                    right_velocity = driving_right_velocity
+                )
+            
+            print("driving left velocity:", driving_left_velocity)
+            print("driving_right_velocity:", driving_right_velocity)
+            if abs(driving_left_velocity) <= 0.1 and abs(driving_right_velocity) <= 0.1 and not is_claw_closed:
+                # When the object is close enough, close the claw and stop the robot
+                self.claw.capture_object()
+                if((not self.claw.is_object_captured()) or (self.claw.is_object_captured() and self.claw.get_percent_open() < 10)):
+                    reward = -1
+                else:
+                    self._shake()
+                    #1 second time delay
+                    time.sleep(1)
+                    if(self.claw.is_object_captured()):
+                        reward = 1
+                    else:
+                        reward = -1
+
+                return(reward)
+
+            # Show the camera view and the masked image
+            #cv2.imshow("frame", self.vision.camera.get_image())
+            #cv2.imshow("mask", mask)
+
+
 
     def do_nothing(self):
         while(1):
@@ -512,64 +670,9 @@ class Robot():
             self.claw.set_percent_open(0)
             time.sleep(2.5)
 
-    def test_move_and_grab(self):
-        #Look for red object
-        self.vision.camera.set_color_filter(0, precision=15)
-        #initiallize tank drive speed variabels
-        driving_left_velocity = 0
-        driving_right_velocity = 0
-        #control loop
-        while(1):
-            #get the color mask
-            mask = self.vision.camera.get_color_mask()
-            #If there are less than 20 active pixels
-            if(np.sum(mask/255) < 20):
-                #stop the robot
-                driving_left_velocity *= 0.75
-                driving_right_velocity *= 0.75
-                self.rvr.drive_tank_si_units(
-                    left_velocity = driving_left_velocity,
-                    right_velocity = driving_right_velocity
-                )
-                time.sleep(0.1)
-                continue
-            #The mask exists and we know we have found an objects (>=20 active pixels in mask)
-            #Get center index in (Row,Col) format
-            mask_center = np.flip((np.array(mask.shape)-1)/2)
-            #avg_point = self.vision.get_avg_mask_point(mask, relative_point=mask_center)
-            #Get the largest contour for the mask and find the centroid relative to the center of the mask
-            largest_contour = self.vision.get_largest_contour(mask)
-            largest_contour_bounding_box = self.vision.get_contour_bounding_box(largest_contour)
-            largest_contour_centroid = self.vision.get_contour_bounding_box_centroid(largest_contour_bounding_box)
-            rel_point = self.vision.get_relative_position(largest_contour_centroid, relative_point=mask_center)
-            #Now update the pan tilt unit according to the output of the control system (avg_point); with reference point at (0,0)
-            self.vision.pan_tilt_unit.update(rel_point)
-            #Now move the robot according to the current angle of the pan unit
-            cur_pan_angle = (self.vision.pan_tilt_unit.controller.PWM_duty_cycles[0]-7.5)/0.055556 #!!!need to add servo class to PTU so we can get the servo angle
-            proportion = 0.3
-            robot_proportion_angle_deg = proportion*cur_pan_angle
-            #Filter out small robot movements
-            if(np.abs(robot_proportion_angle_deg) < 1.5):
-                driving_left_velocity = 0
-                driving_right_velocity = 0
-            #if the movement is big enough, then move the robot
-            else:
-                driving_left_velocity = -robot_proportion_angle_deg/90.0
-                driving_right_velocity = robot_proportion_angle_deg/90.0
-            #in addition to turning the robot, add an offset to move it forward toward the object of intetest
-            velocity_limit = 0.40 #m/s
-            #VVV THE KEY PART IS HERE VVV
-            optimal_object_width = 150
-            driving_left_velocity += velocity_limit*(1.0 - largest_contour_bounding_box[2]/optimal_object_width)
-            driving_right_velocity += velocity_limit*(1.0 - largest_contour_bounding_box[2]/optimal_object_width)
-            #after computing the new velocity of the wheels, set the values to the rvr
-            self.rvr.drive_tank_si_units(
-                    left_velocity = driving_left_velocity,
-                    right_velocity = driving_right_velocity
-                )
-            #Last, check if bounding box is equal to optimal width & grab (this is a hardcoded method)
-
-    def move_to_color(self):
+    
+    
+    def move_and_grab_red_ball(self):
         #Look for red object
         self.vision.camera.set_color_filter(0, precision=15)
         #initiallize tank drive speed variabels
@@ -645,6 +748,61 @@ class Robot():
             # Show the camera view and the masked image
             cv2.imshow("frame", self.vision.camera.get_image())
             cv2.imshow("mask", mask)
+
+    def move_to_color(self):
+        #Look for red object
+        self.vision.camera.set_color_filter(0, precision=15)
+        #initiallize tank drive speed variabels
+        driving_left_velocity = 0
+        driving_right_velocity = 0
+        #control loop
+        while(1):
+            #get the color mask
+            mask = self.vision.camera.get_color_mask()
+            #If there are less than 20 active pixels
+            if(np.sum(mask/255) < 20):
+                #stop the robot
+                driving_left_velocity *= 0.75
+                driving_right_velocity *= 0.75
+                self.rvr.drive_tank_si_units(
+                    left_velocity = driving_left_velocity,
+                    right_velocity = driving_right_velocity
+                )
+                time.sleep(0.1)
+                continue
+            #The mask exists and we know we have found an objects (>=20 active pixels in mask)
+            #Get center index in (Row,Col) format
+            mask_center = np.flip((np.array(mask.shape)-1)/2)
+            #avg_point = self.vision.get_avg_mask_point(mask, relative_point=mask_center)
+            #Get the largest contour for the mask and find the centroid relative to the center of the mask
+            largest_contour = self.vision.get_largest_contour(mask)
+            largest_contour_bounding_box = self.vision.get_contour_bounding_box(largest_contour)
+            largest_contour_centroid = self.vision.get_contour_bounding_box_centroid(largest_contour_bounding_box)
+            rel_point = self.vision.get_relative_position(largest_contour_centroid, relative_point=mask_center)
+            #Now update the pan tilt unit according to the output of the control system (avg_point); with reference point at (0,0)
+            self.vision.pan_tilt_unit.update(rel_point)
+            #Now move the robot according to the current angle of the pan unit
+            cur_pan_angle = (self.vision.pan_tilt_unit.controller.PWM_duty_cycles[0]-7.5)/0.055556 #!!!need to add servo class to PTU so we can get the servo angle
+            proportion = 0.3
+            robot_proportion_angle_deg = proportion*cur_pan_angle
+            #Filter out small robot movements
+            if(np.abs(robot_proportion_angle_deg) < 1.5):
+                driving_left_velocity = 0
+                driving_right_velocity = 0
+            #if the movement is big enough, then move the robot
+            else:
+                driving_left_velocity = -robot_proportion_angle_deg/90.0
+                driving_right_velocity = robot_proportion_angle_deg/90.0
+            #in addition to turning the robot, add an offset to move it forward toward the object of intetest
+            velocity_limit = 0.40 #m/s
+            optimal_object_width = 150
+            driving_left_velocity += velocity_limit*(1.0 - largest_contour_bounding_box[2]/optimal_object_width)
+            driving_right_velocity += velocity_limit*(1.0 - largest_contour_bounding_box[2]/optimal_object_width)
+            #after computing the new velocity of the wheels, set the values to the rvr
+            self.rvr.drive_tank_si_units(
+                    left_velocity = driving_left_velocity,
+                    right_velocity = driving_right_velocity
+                )
 
 
     #face the robot to a color of interest
