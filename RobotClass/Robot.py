@@ -4,7 +4,7 @@ import numpy as np
 import sphero_sdk as sphero
 import cv2
 import os
-import random.random as rand
+from random import choice as rand
 from Manipulation.Claw import Claw
 from Vision.Perception import Perception
 from Cognition.Cognition import Cognition
@@ -33,43 +33,47 @@ class Robot():
 
     #turn randomly to -90, 0, or 90 degrees
     def _explore(self):
-        random_val = int(3*rand())
+        random_val = rand([90, 0, -90])
         self.rvr.drive_to_position_si(
-            yaw_angle=random_val*90,
+            yaw_angle=random_val,
             x=0,
             y=0,
             linear_speed=0.25,
             flags=0
         )
-        time.sleep(1)
+        time.sleep(5)
+
+    def _run(self):
+        self.rvr.drive_tank_si_units(
+            left_velocity = -0.5,
+            right_velocity = -0.5
+        )
+        time.sleep(0.25)
+        self.rvr.drive_tank_si_units(
+            left_velocity = 0,
+            right_velocity = 0
+        )
 
     #either approach or run
     def _perform_action(self, action, color):
         if(action == "APPROACH"):
             reward = self._move_and_grab_color(color)
-        else: #RUN
+            self.claw.release_object()
             self.rvr.drive_tank_si_units(
-                left_velocity = -0.5,
-                right_velocity = -0.5
+                left_velocity = -0.1,
+                right_velocity = -0.1
             )
-            time.sleep(0.25)
+            time.sleep(1.5)
             self.rvr.drive_tank_si_units(
                 left_velocity = 0,
                 right_velocity = 0
             )
+        else: #RUN
+            self._run()
+            time.sleep(1)
             reward = 0
         #return to center and reset camera
         self.vision.pan_tilt_unit.set_servo_angles(0, 0)
-        self.rvr.drive_to_position_si(
-            yaw_angle=0,
-            x=0,
-            y=0,
-            linear_speed=0.25,
-            flags=0
-        )
-        time.sleep(3)
-        self.claw.release_object()
-        time.sleep(2)
         return(reward)
 
 
@@ -78,10 +82,13 @@ class Robot():
         #initiallize a color dictionary: assign a string to a hue value
         color_dict = {
             "RED" : 0,
-            "GREEN" : 80,
-            "BLUE": 120,
+            "YELLOW" : 30,
+            #"GREEN" : 80,
+            #"BLUE": 120,
         }
         #loop forever and keep updating values
+        self._explore()
+        counter = 1
         while(1):
             #Get list of colors in view of the camera
             colors_in_view = self.vision.get_colors_in_view(color_dict)
@@ -91,19 +98,38 @@ class Robot():
                 self._explore()
                 continue
             #Define the state of the robot: prioritize state with the most negative possible outcome
+            #state = self.cognition.get_state_with_largest_view(colors_in_view)
             state = self.cognition.get_state_with_largest_punishment(colors_in_view)
             action = self.cognition.get_action(state)
-            reward = self._perform_action(action, color=color_dict[action])
-            #new_state = self.cognition.get_new_state(state, action)
-            self.cognition.update_q_table(state, action, reward)
+            reward = self._perform_action(action, color=color_dict[state])
+            new_state = self.cognition.get_new_state(state, action)
+            self.cognition.update_q_table(state, action, reward, new_state)
+            self.claw.set_percent_open(50)
+            self.rvr.drive_to_position_si(
+                yaw_angle=0,
+                x=0,
+                y=0,
+                linear_speed=0.25,
+                flags=0
+            )
+            time.sleep(7)
+            #print the Q-table every 5th run
+            if(counter % 5 == 0):
+                print(f"Result After Trial #{counter}:")
+                self.cognition.print_q_table()
+            #update the counter
+            counter += 1
+
 
     def _move_and_grab_color(self, color):
+        #open the claw
+        self.claw.set_percent_open(100)
         #Look for red object
         self.vision.camera.set_color_filter(color, precision=15)
         if(color == 0):
-            optimal_object_width = 200
+            optimal_object_width = 190
         else:
-            optimal_object_width = 250
+            optimal_object_width = 225
         #initiallize tank drive speed variabels
         driving_left_velocity = 0
         driving_right_velocity = 0
@@ -140,7 +166,7 @@ class Robot():
             proportion = 0.3
             robot_proportion_angle_deg = proportion*cur_pan_angle
             #Filter out small robot movements
-            if(np.abs(robot_proportion_angle_deg) < 1.5):
+            if(np.abs(robot_proportion_angle_deg) < 0.5):
                 driving_left_velocity = 0
                 driving_right_velocity = 0
             #if the movement is big enough, then move the robot
@@ -148,30 +174,33 @@ class Robot():
                 driving_left_velocity = -robot_proportion_angle_deg/90.0
                 driving_right_velocity = robot_proportion_angle_deg/90.0
             #in addition to turning the robot, add an offset to move it forward toward the object of intetest
-            velocity_limit = 0.40 #m/s
+            velocity_limit = 0.30 #m/s
             driving_left_velocity += velocity_limit*(1.0 - largest_contour_bounding_box[2]/optimal_object_width)
             driving_right_velocity += velocity_limit*(1.0 - largest_contour_bounding_box[2]/optimal_object_width)
+            #Offset to account for offcentering
+            driving_left_velocity += 0.075
             #after computing the new velocity of the wheels, set the values to the rvr
             self.rvr.drive_tank_si_units(
                     left_velocity = driving_left_velocity,
                     right_velocity = driving_right_velocity
                 )
             
-            print("driving left velocity:", driving_left_velocity)
-            print("driving_right_velocity:", driving_right_velocity)
+            #print("driving left velocity:", driving_left_velocity)
+            #print("driving_right_velocity:", driving_right_velocity)
+            #if( largest_contour_bounding_box[2] > optimal_object_width):
             if abs(driving_left_velocity) <= 0.1 and abs(driving_right_velocity) <= 0.1 and not is_claw_closed:
                 # When the object is close enough, close the claw and stop the robot
                 self.claw.capture_object()
                 if((not self.claw.is_object_captured()) or (self.claw.is_object_captured() and self.claw.get_percent_open() < 10)):
-                    reward = -1
+                    reward = -10
                 else:
                     self._shake()
                     #1 second time delay
                     time.sleep(1)
                     if(self.claw.is_object_captured()):
-                        reward = 1
+                        reward = 5
                     else:
-                        reward = -1
+                        reward = -10
 
                 return(reward)
 
@@ -276,10 +305,13 @@ class Robot():
                 right_velocity = -velocity
             )
             time.sleep(delay)
+        
+        #back up rapidly
+        self.rapid_backup()
 
     def rapid_backup(self):
         velocity = 1.0
-        delay = 0.25
+        delay = 0.15
         self.rvr.drive_tank_si_units(
             left_velocity = -velocity,
             right_velocity = -velocity
@@ -806,8 +838,8 @@ class Robot():
 
 
     #face the robot to a color of interest
-    def face_color(self):
-        self.vision.camera.set_color_filter(0, precision=15)
+    def face_color(self, color=0):
+        self.vision.camera.set_color_filter(color, precision=15)
         while(1):
             mask = self.vision.camera.get_color_mask()
             #If there are less than 10 active pixels

@@ -13,6 +13,8 @@ class Claw():
         self.right_limit_switch = LimitSwitch(pin=right_limit_switch_pin, use_pullup_config=True)
         self.left_limit_switch = LimitSwitch(pin=left_limit_switch_pin, use_pullup_config=True)
         self.servo = Servo(pin=servo_pin, reset_servo_position=False)
+        #initiallize the percent_open value
+        self.set_percent_open(50)
 
     #Set how open the claw should be
     def set_percent_open(self, pct_open):

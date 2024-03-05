@@ -30,8 +30,8 @@ class Perception():
             largest_contour = self.get_largest_contour(color_mask)
             largest_contour_bounding_box = self.get_contour_bounding_box(largest_contour)
             pixel_width = largest_contour_bounding_box[2]
-            #condition 2: the object with have a width no less than 5 pixels (reduces chance of contour being random noise)
-            if(pixel_width >= 5):
+            #condition 2: the object with have a width no less than 10 pixels (reduces chance of contour being random noise)
+            if(pixel_width >= 10):
                 colors_in_view.append(color)
         #return the list of colors in view
         return(colors_in_view)
